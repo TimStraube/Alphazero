@@ -1,0 +1,68 @@
+Alphazero
+
+Model: vivalavida
+Searches: 100
+Size: 9x9
+Ships: [5, 4, 3, 2]
+Games: [
+    Game number, AI moves, Human moves, Winner;
+    01, AI: 27, Human: 31, AI;
+    02, AI: 66, Human: 60, Human;
+    03, AI: 27, Human: 32, AI;
+    04, AI: 28, Human: 45, AI;
+    05, AI: 28, Human: 35, AI;
+    06, AI: 30, Human: 27, Human;
+    07, AI: 21, Human: 35, AI;
+    08, AI: 47, Human: 36, Human;
+    09, AI: 31, Human: 44, AI;
+    10, AI: 31, Human: 34, AI;
+]
+median: [
+    AI: 33.6, Human: 37.9;
+]
+
+Model: vivalavida
+Searches: 250
+Size: 9x9
+Ships: [5, 4, 3, 2]
+Games: [
+    01, AI: 35, Human: 42, AI;
+    02, AI: 29, Human: 63, AI;
+    03, AI: 28, Human: 34, AI;
+    04, AI: 20, Human: 38, AI;
+    05: AI: 23, Human: 59, AI; 
+]
+median: [
+    AI: 27.0, Human: 47.2;
+]
+
+Model: blitz
+Searches: 100
+Size: 9x9
+Ships: [5, 4, 3, 2]
+Games: [
+    01, AI: 46, Human: 59, AI;
+    02, AI: 52, Human: 49, Human; 
+    03, AI: 52, Human: 40, Human;
+    04, AI: 36, Human: 41, AI;
+    05, AI: 40, Human: 37, Human;
+]
+median: [
+    AI: 45.2, Human: 45.2;
+]
+
+Model: davidnova
+Searches: 100
+Size: 9x9
+Ships: [5, 4, 3, 2]
+Games: [
+    01, AI: 34, Human: 36, AI;
+    02, AI: 27, Human: 39, AI;
+    03, AI: 34, Human: 43, AI;
+    04, AI: 35, Human: 35, None;
+    05, AI: 62, Human: 53, Human;
+
+]
+median: [
+    AI: 38.4, Human: 41.2;
+]
