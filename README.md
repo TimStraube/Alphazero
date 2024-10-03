@@ -17,11 +17,11 @@ The most capable agent achives victory in about 29 moves in the mean on a 9x9 ba
 ## Getting started
 
 Training
-´´´
+```
 python3 alphazero.py
-´´´
+```
 
 Playing against alphazero in the browser
-´´´
+```
 python3 gameserver.py
-´´´
+```
