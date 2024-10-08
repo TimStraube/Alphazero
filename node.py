@@ -1,3 +1,9 @@
+"""
+secondary author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 import math
 import numpy
 

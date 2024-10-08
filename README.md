@@ -1,4 +1,4 @@
-# Alphazero-battleship
+# Alphazero implementation for the game battleship
 
 This program solved the game of battleship using alphazero.
 

@@ -1,84 +1,20 @@
+"""
+author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 import numpy
 import random
-
-class ConnectFour:
-    def __init__(self):
-        self.row_count = 6
-        self.column_count = 7
-        self.action_size = self.column_count
-        self.in_a_row = 4
-        self.moves = 0
-
-    def __repr__(self):
-        return "connectfour"
-
-    def get_initial_state(self):
-        return numpy.zeros(
-            (self.row_count, self.column_count)
-        )
-
-    def step(self, state, action, player):
-        row = numpy.max(numpy.where(state[:, action] == 0))
-        state[row, action] = player
-        return state
-
-    def get_valid_moves(self, state):
-        return (state[0] == 0).astype(numpy.uint8)
-
-    def check_win(self, state, action):
-        if action == None:
-            return False
-
-        row = numpy.min(numpy.where(state[:, action] != 0))
-        column = action
-        player = state[row][column]
-
-        def count(offset_row, offset_column):
-            for i in range(1, self.in_a_row):
-                r = row + offset_row * i
-                c = action + offset_column * i
-                if (
-                    r < 0
-                    or r >= self.row_count
-                    or c < 0
-                    or c >= self.column_count
-                    or state[r][c] != player
-                ):
-                    return i - 1
-            return self.in_a_row - 1
-
-        return (
-            count(1, 0) >= self.in_a_row - 1
-            or (count(0, 1) + count(0, -1)) >= self.in_a_row - 1 
-            or (count(1, 1) + count(-1, -1)) >= self.in_a_row - 1 
-            or (count(1, -1) + count(-1, 1)) >= self.in_a_row - 1  
-        )
-
-    def terminated(self, state, action):
-        if self.check_win(state, action):
-            return 1, True
-        if numpy.sum(self.get_valid_moves(state)) == 0:
-            return 0, True
-        return 0, False
-
-    def change_perspective(self, state, player):
-        return state * player
-
-    def get_encoded_state(self, state, player):
-        state = state[player:player + 2]
-        encoded_state = numpy.stack(
-            (state == 0, state == 255)
-        ).astype(numpy.float32)
-        return encoded_state
 
 class Battleship:
     def __init__(self, size):
         # player 0 and 3 as indices for map 
-        self.row_count = size
-        self.column_count = size
+        self.rows = size
+        self.columns = size
         self.size = size
-        self.action_size = (
-            self.column_count * self.row_count
+        self.actions = (
+            self.columns * self.rows
         )
         self.moves = 0
 
@@ -91,7 +27,7 @@ class Battleship:
         self.num_shipparts = 14
         # initalization of all submaps
         state = numpy.zeros(
-            (6, self.column_count, self.row_count), dtype=numpy.uint8
+            (6, self.columns, self.rows), dtype=numpy.uint8
         )
         self.ships = [[], []]
         self.place_ships(state, player)
@@ -119,10 +55,10 @@ class Battleship:
 
         self.repeat = False
 
-        if (hit == 0 and ship == 0):
+        if (hit == False and ship == False):
             # hit water
             state[self.hitIndex(player), x, y] = 255
-        elif (hit == 0 and ship == 255):
+        elif (hit == False and ship == True):
             # hit ship
             state[self.hitIndex(player), x, y] = 255
             state[self.knowledgeIndex(player), x, y] = 255
@@ -151,9 +87,9 @@ class Battleship:
         return policy
 
     def check_win(self, state, action, player):
-        hit_state = state[self.hitIndex(player)]
-        ship_state = state[self.shipIndex(-player)]
-        if (numpy.sum(ship_state * hit_state) == 
+        state_hit = state[self.hitIndex(player)]
+        state_ship = state[self.shipIndex(-player)]
+        if (numpy.sum(state_ship * state_hit) == 
             self.num_shipparts):
             
             return True
@@ -170,7 +106,7 @@ class Battleship:
     def change_perspective(self, state, player):
         # TODO test
         return_state = numpy.zeros(
-            (6, self.column_count, self.row_count), 
+            (6, self.columns, self.rows), 
             dtype=numpy.uint8
         )
         if player == -1:

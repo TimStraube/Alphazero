@@ -1,9 +1,15 @@
+"""
+author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 from game import Battleship
 from point import Point
 
 class WebBattleship(Battleship):
     battle = 0
-    play_phase = True
+    phase_play = True
     bow = Point(0, 0)
 
     def __init__(self, size):

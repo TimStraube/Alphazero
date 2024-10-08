@@ -1,3 +1,9 @@
+"""
+author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 class Point():
     X : int = 0
     Y : int = 0

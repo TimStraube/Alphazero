@@ -1,7 +1,13 @@
+"""
+author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 import tensorflow as tf
 import random
 import numpy
-from resnet import ResNet
+from residualnetwork import ResidualNetwork
 from game import Battleship
 from mcts import MCTS
 
@@ -9,7 +15,7 @@ def quantize_model(converter):
     board_size = 9
     game = Battleship(board_size)   
     state = game.restart(0)
-    model = ResNet(
+    model = ResidualNetwork(
                 game, 
                 4, 
                 9, 

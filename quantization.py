@@ -1,22 +1,20 @@
+"""
+author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 import torch
 import onnx
 import tensorflow
 # import onnx_tf
 import random
 import numpy
-import torch.ao.quantization.quantize_fx as quantize_fx
-import copy
-import warnings
 import onnxruntime as ort
-import time
 import os
-from tensorflow import keras
-from onnxruntime.datasets import get_example
 from onnxruntime.quantization import quantize_dynamic
 from onnxruntime.quantization import QuantType
-from torchsummary import summary
-from stable_baselines3 import PPO
-from resnet import ResNet
+from residualnetwork import ResidualNetwork
 from game import Battleship
 from mcts import MCTS
         
@@ -27,7 +25,7 @@ class ConvertModel():
         self.game = Battleship(self.board_size)
         # self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.device = "cpu"
-        self.model = ResNet(
+        self.model = ResidualNetwork(
             self.game, 
             8, 
             8, 

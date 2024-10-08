@@ -1,3 +1,9 @@
+"""
+secondary author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 import random
 import numpy
 import os
@@ -6,7 +12,7 @@ import torch.nn.functional as F
 from mcts import MCTS
 from tqdm import trange
 from game import Battleship
-from resnet import ResNet
+from residualnetwork import ResidualNetwork
 
 class AlphaZero:
     def __init__(self):
@@ -21,7 +27,7 @@ class AlphaZero:
         selfplayiterations = int(
             input("Self play iterations: ")
         )
-        self.model = ResNet(
+        self.model = ResidualNetwork(
             self.game, 
             resblocks, 
             hiddenlayers, 

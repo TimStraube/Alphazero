@@ -1,10 +1,16 @@
+"""
+author: Tim Straube
+contact: hi@optimalpi.com
+licence: MIT
+"""
+
 import numpy as np
 import torch
 import socket
 import torch
 import numpy
 import time
-from resnet import ResNet
+from residualnetwork import ResidualNetwork
 from mcts import MCTS
 from gtts import gTTS
 import onnxruntime as rt
@@ -42,7 +48,13 @@ class Gameserver():
         )
         self.model_path = "vivalavida9x9"
 
-        self.model = ResNet(self.webgame, 2, 32, 4, device)
+        self.model = ResidualNetwork(
+            self.webgame, 
+            2, 
+            32, 
+            4, 
+            device
+        )
         self.model.load_state_dict(
             torch.load(
                 f"models/{self.model_path}/main.pt", 
