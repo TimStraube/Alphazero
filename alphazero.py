@@ -9,7 +9,8 @@ import numpy
 import os
 import sqlite3
 import torch
-import torch.nn.functional as F
+import torch.nn.functional as functional
+import concurrent.futures
 from mcts import MCTS
 from tqdm import trange
 from game import Battleship
@@ -192,43 +193,51 @@ class AlphaZero:
                 batchIdx + self.args['batch_size'])]  
             # Change to in case of an error
             # memory[batchIdx:batchIdx + self.args['batch_size']] 
-            state, policy_targets, value_targets = zip(*sample)
+            state, policy_targets, value_targets = zip(
+                *sample
+            )
             state, policy_targets, value_targets = (
                 numpy.array(state),
                 numpy.array(policy_targets),
-                numpy.array(value_targets).reshape(-1, 1))
+                numpy.array(value_targets).reshape(-1, 1)
+            )
             state = torch.tensor(
                 state, 
                 dtype=torch.float32,
-                device=self.model.device)
+                device=self.model.device
+            )
             policy_targets = torch.tensor(
                 policy_targets,
                 dtype=torch.float32,
-                device=self.model.device)
+                device=self.model.device
+            )
             value_targets = torch.tensor(
                 value_targets, 
                 dtype=torch.float32, 
-                device=self.model.device)
+                device=self.model.device
+            )
 
             out_policy, out_value = self.model(state)
 
-            policy_loss = F.cross_entropy(
+            policy_loss = functional.cross_entropy(
                 out_policy, 
                 policy_targets
             )
-            value_loss = F.mse_loss(out_value, value_targets)
+            value_loss = functional.mse_loss(
+                out_value, 
+                value_targets
+            )
             loss = policy_loss + value_loss
 
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
-        pass
 
     def learn(self, modellocation):
-        for iteration in range(self.args['num_iterations']):
+        for _ in range(self.args['num_iterations']):
             memory = []
             self.model.eval()
-            for selfPlay_iteration in trange(
+            for _ in trange(
                 self.args['num_selfPlay_iterations']):
                 memory += self.selfPlay()
             self.model.train()
@@ -238,9 +247,6 @@ class AlphaZero:
                 self.model.state_dict(), 
                 "./models/" + modellocation + f"/main.pt"
             )
-            # torch.save(
-            #     self.optimizer.state_dict(), 
-            #     "/home/ti741str/Dokumente/Projektarbeit/ai-systems-lab/projects/rl_battleship/alphazero/connect4_and_battleship/models/" + modellocation + f"optimizer_{iteration}_{self.game}.pt")
 
 if __name__ == "__main__":
     alphazero = AlphaZero()
