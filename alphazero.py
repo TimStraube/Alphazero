@@ -7,6 +7,7 @@ licence: MIT
 import random
 import numpy
 import os
+import sqlite3
 import torch
 import torch.nn.functional as F
 from mcts import MCTS
@@ -16,16 +17,19 @@ from residualnetwork import ResidualNetwork
 
 class AlphaZero:
     def __init__(self):
-        self.game = Battleship(int(input("Size: ")))
+        print("\nSetup of AlphaZero for training battleship\n")
+        model_id = str(input("ID (string, for example AZ-{day}-{month}-{year}-{hardware}-{char}): "))
+        size = int(input("Battleship board width/height (int): "))
+        self.game = Battleship(size)
         device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        resblocks = int(input("Resblocks: "))
-        hiddenlayers = int(input("Hidden layers: "))
-        inputarrays = int(input("Observed arrays: "))
-        searches = int(input("Searches: "))
+        resblocks = int(input("Resblocks (int): "))
+        hiddenlayers = int(input("Hidden layers (int): "))
+        inputarrays = int(input("Observed arrays (int): "))
+        searches = int(input("Searches (int): "))
         selfplayiterations = int(
-            input("Self play iterations: ")
+            input("Self play iterations (int): ")
         )
         self.model = ResidualNetwork(
             self.game, 
@@ -54,38 +58,74 @@ class AlphaZero:
             'dirichlet_epsilon': 0.25,
             'dirichlet_alpha': 0.3
         }
-        modellocation = str(input("Folder: "))
         try: 
             os.makedirs(os.path.join(
                 "./models/", 
-                modellocation
+                model_id
             ), exist_ok = True)
         except OSError as error:
             pass
 
-        filepath = (
-            "./models/" + 
-            modellocation + 
-            f"/hyperparameter.log"
-        )
-        file = open(filepath, "w")
-        file.write("Hyperparameter\n\n")
-        file.write("Resblocks: " + str(resblocks) + "\n")
-        file.write("Hidden: " + str(hiddenlayers) + "\n")
-        file.write("Inputarrays: " + str(inputarrays) + "\n")
-        file.write("Searches: " + str(searches) + "\n")
-        file.write(
-            "Selfplayiterations: " + 
-            str(selfplayiterations) + 
-            "\n"
-        )
-        file.close()
+        conn = None
+        try:
+            # Ensure the models folder exists
+            os.makedirs("models", exist_ok=True)
+
+            # Path to the database file
+            database_path = os.path.join(
+                "models", 
+                "config.db"
+            )
+
+            conn = sqlite3.connect(database_path)
+            cursor = conn.cursor()
+            # Create table with name based on model_id
+            table_name = f"model_{model_id.replace('-', '_')}" 
+            create_table_query = f"""
+                CREATE TABLE IF NOT EXISTS {table_name} (
+                    Size INT,
+                    Resblocks INT,
+                    Hidden_layer INT,
+                    Input_array INT,
+                    Searches INT,
+                    Selfplay_iterations INT
+                )
+            """
+            cursor.execute(create_table_query)
+            
+            # Insert model metadata and file path
+            insert_query = f"""
+                INSERT INTO {table_name} (
+                    Size,
+                    Resblocks,
+                    Hidden_layer,
+                    Input_array,
+                    Searches,
+                    Selfplay_iterations
+                ) VALUES (?, ?, ?, ?, ?, ?)
+            """
+            cursor.execute(
+                insert_query, 
+                (
+                    size,
+                    resblocks,
+                    hiddenlayers,
+                    inputarrays,
+                    searches,
+                    selfplayiterations
+                )
+            )
+            
+            # Commit the transaction
+            conn.commit()
+        except sqlite3.Error as e:
+            print("SQLite error: " + str(e))
 
         self.average_episodes = 0
         self.array_episodes = []
         self.mcts = MCTS(self.game, self.args, self.model)
 
-        self.learn(modellocation)
+        self.learn(model_id)
 
     def selfPlay(self):
         memory = []
@@ -105,7 +145,7 @@ class AlphaZero:
                 player
             ))
             action = numpy.random.choice(
-                self.game.action_size, 
+                self.game.actions, 
                 p = action_probs
             )
 

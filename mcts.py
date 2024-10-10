@@ -40,7 +40,7 @@ class MCTS:
             self.args['dirichlet_epsilon'] * 
             numpy.random.dirichlet(
                 [self.args['dirichlet_alpha']] * 
-                self.game.action_size))
+                self.game.actions))
         policy = self.game.policy(policy, state)
         root.expand(policy)
         for search in range(self.args['num_searches']):
@@ -72,7 +72,7 @@ class MCTS:
                 )
                 node.expand(policy)
             node.backpropagate(value)
-        action_probs = numpy.zeros(self.game.action_size)
+        action_probs = numpy.zeros(self.game.actions)
         for child in root.children:
             action_probs[child.action_taken] = child.visit_count
         action_probs /= numpy.sum(action_probs)

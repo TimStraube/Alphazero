@@ -234,7 +234,7 @@ class Battleship:
     def points_between(self, p1, p2):
         points = []
 
-        if p1[0] == p2[0]:  # If x1 and x2 are the same
+        if p1[0] == p2[0]:  
             y_values = list(
                 range(
                     min(p1[1], p2[1]), 
@@ -242,7 +242,7 @@ class Battleship:
                 )
             )
             points = [[p1[0], y] for y in y_values]
-        elif p1[1] == p2[1]:  # If y1 and y2 are the same
+        elif p1[1] == p2[1]:  
             x_values = list(
                 range(
                     min(p1[0], p2[0]), 
