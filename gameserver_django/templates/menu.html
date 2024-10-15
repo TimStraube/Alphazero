@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="de" style="overflow: hidden;">
+<head>
+    <title>Alphastrike</title>
+    <link
+        href='https://fonts.googleapis.com/css?family=Fira Code'
+        rel='stylesheet'>
+    <link 
+        href='https://fonts.googleapis.com/css?family=EB Garamond' 
+        rel='stylesheet'>
+    <link rel="shortcut icon" href="#">
+    <link rel="stylesheet" href="/static/style.css">
+    <meta
+        name="viewport"
+        content="
+            width=device-width, 
+            initial-scale=0.2,
+            maximum-scale=0.2,
+            user-scalable=0">
+</head>
+<body style="
+        background-image: url('/static/img/command.jpg');
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+        background-size: cover;
+        font-family: 'EB Garamond';">
+
+    <h1>
+        Alphastrike
+    </h1>
+    <h2 id="infoline">
+        SIR. We detected the hostile fleet! Shall we engage?
+    </h2>
+    <button id="start" onclick="window.location.href = 'game.html';">
+        Engage
+    </button>
+    <div id="output">
+        <span 
+            id="final" 
+            class="final" 
+            style="font-family: EB Garamond; font-size: 35px; margin: 1%;">
+        </span>
+        <span 
+            id="interim" 
+            class="interim"
+            style="font-family: EB Garamond; font-size: 35px; margin: 1%;">
+        </span>
+    </div>
+</body>
+<script>
+    var infoline = document.getElementById(
+        "infoline"
+    )
+
+    document.body.style.backgroundImage = 'url(/static/img/menu.jpg)'
+    infoline.innerText = "SIR. We detected the hostile fleet! Shall we engage?" 
+
+
+    var speechElement = new webkitSpeechRecognition();
+    speechElement.lang = 'de-DE';
+    speechElement.interimResults = true;
+    speechElement.continuous = true;
+    var final_transcript = '';
+    var removeCharsInterval = null;
+    speechElement.start();
+
+    function removeFirstChar()
+    {
+        final_transcript = final_transcript.substring(1);
+        document.getElementById('final').innerHTML = final_transcript;
+        console.log(final_transcript);
+        if (final_transcript.length < 1)
+        {
+            clearInterval(removeCharsInterval);
+        }
+        return;
+    }
+
+    speechElement.onresult = function(event) 
+    {
+        var interim_transcript = '';
+        for(var i = event.resultIndex; i < event.results.length; ++i) 
+        {
+            if (event.results[i].isFinal) 
+            {
+                final_transcript += event.results[i][0].transcript;
+                for (let ii = 65; ii <= (65 + size - 1); ii++) { 
+                    console.log(ii)
+                    let letter = String.fromCharCode(ii).toUpperCase();
+                    for (let number = 1; number <= size; number++) {
+                        let position = letter + number;
+                        if (final_transcript.includes(
+                            position
+                        )) 
+                        {
+                            sendSvgSourceToPython(position);
+                        }
+                    }
+                }
+                if (final_transcript.includes("your")) 
+                {
+                    sendSvgSourceToPython("A1");
+                }
+                if (final_transcript.includes(
+                    "white"
+                )) 
+                {
+                    updateZustand(0)
+                }
+                if (final_transcript.includes(
+                    "engage"
+                )) 
+                {
+                    updateZustand(1)
+                }
+                removeCharsInterval = setInterval(
+                    removeFirstChar, 
+                    100
+                );
+            } else
+            {
+                interim_transcript += event.results[i][0].transcript;
+                console.log(interim_transcript)
+            }
+        }
+        document.getElementById('final').innerHTML = final_transcript;
+        document.getElementById('interim').innerHTML = interim_transcript;
+    }
+</script>
+</html>

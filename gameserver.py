@@ -46,7 +46,7 @@ class Gameserver():
         device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        self.model_path = "vivalavida9x9"
+        self.model_path = "AZ-24-06-24-EIPC51-A"
 
         self.model = ResidualNetwork(
             self.webgame, 
@@ -220,7 +220,7 @@ gameserver = Gameserver()
 
 # handle requests for game with human and computer agent 
 @app.route('/', methods=['GET', 'POST', 'HEAD']) 
-def index():
+def menu():
     if request.method == 'POST':
         req = request.get_json()
         return gameserver.singleclick(
@@ -233,7 +233,26 @@ def index():
             num_searches = 100
         gameserver.restart(num_searches)
         return render_template(
-            'webgame.html',
+            'menu.html',
+            boardsize = gameserver.webgame.size
+        )
+
+# handle requests for game with human and computer agent 
+@app.route('/', methods=['GET', 'POST', 'HEAD']) 
+def game():
+    if request.method == 'POST':
+        req = request.get_json()
+        return gameserver.singleclick(
+            req["Source"]
+        )
+    else:
+        try:
+            num_searches = int(request.args.get('searches'))
+        except:
+            num_searches = 100
+        gameserver.restart(num_searches)
+        return render_template(
+            'game.html',
             boardsize = gameserver.webgame.size
         )
 
