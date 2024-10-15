@@ -16,8 +16,11 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from webgameserver.views import custom_404
 
 urlpatterns = [
-    path("webgameserver/", include("webgameserver.urls")),
     path('admin/', admin.site.urls),
+    path("", include("webgameserver.urls")),
 ]
+
+handler404 = custom_404
