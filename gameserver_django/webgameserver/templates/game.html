@@ -19,7 +19,7 @@
             user-scalable=0">
 </head>
 <body style="
-        background-image: url('/static/img/command.jpg');
+        background-image: url('/static/img/navy.jpg');
         background-repeat: no-repeat;
         background-attachment: fixed;
         background-size: cover;
@@ -54,14 +54,6 @@
     </div>
 </body>
 <script>
-    // Battleship game
-    state = Array.from({ length: {{ boardsize }} }, () => 
-        Array.from({ length: {{ boardsize }} }, () => 
-            Array(6).fill(0)
-        )
-    )
-
-
     function sendSvgSourceToPython(source) {
         fetch('/', {
             method: 'POST',
@@ -87,12 +79,12 @@
                 }
 
                 if (message == "You won") {
-                    updateZustand(2)
+                    window.location.href = "won/"
                     // window.location.reload()
                 } 
 
                 if (message == "AI won") {
-                    updateZustand(3)
+                    window.location.href = "loss/"
                     // window.location.reload()
                 } 
             }
