@@ -340,44 +340,10 @@
         "reset"
     )
 
-    function updateZustand(zustand) {
-        if (zustand == 0) 
-        {
-            window.location.reload()
-            buttonStart.style.visibility = 'visible'
-            buttonReset.style.visibility = 'hidden'
-            document.body.style.backgroundImage = 'url(/static/img/navy.jpg)'
-            infoline.innerText = "SIR. We detected the hostile fleet! Shall we engage?" 
-        }
-        if (zustand == 1) 
-        {               
-            document.body.style.backgroundImage = 'url(/static/img/navy.jpg)'
-
-            
-            infoline.innerText = "Your ship map" + '\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0' + "Your strike map" 
-
-            buttonStart.style.visibility = 'hidden'
-
-            zeichneBoards()
-        }
-        if (zustand == 2) 
-        {
-            document.body.style.backgroundImage = 'url(/static/img/victory.webp)'
-            buttonReset.style.visibility = 'visible'
-            button.innerHTML = 'Reset'
-            infoline.innerText = "Victory" 
-        }
-        if (zustand == 3)
-        {
-            document.body.style.backgroundImage = 'url(/static/img/defeat.jpg)'
-            buttonReset.style.visibility = 'visible'
-            button.innerHTML = 'Reset'
-            infoline.innerText = "Defeat" 
-        }
-    }
-
-    
-
+    document.body.style.backgroundImage = 'url(/static/img/navy.jpg)'
+    infoline.innerText = "Your ship map" + '\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0\xa0' + "Your strike map" 
+    buttonStart.style.visibility = 'hidden'
+    zeichneBoards()
 
     var speechElement = new webkitSpeechRecognition();
     speechElement.lang = 'de-DE';
