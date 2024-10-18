@@ -10,12 +10,12 @@ import socket
 import torch
 import numpy
 import time
-from residualnetwork import ResidualNetwork
-from mcts import MCTS
+from webgameserver.residualnetwork import ResidualNetwork
+from webgameserver.mcts import MCTS
 from gtts import gTTS
 import onnxruntime as rt
 # from playsound import playsound
-from webgame import WebBattleship
+from webgameserver.webgame import WebBattleship
 from flask import Flask
 from flask import render_template
 from flask import jsonify
@@ -57,7 +57,7 @@ class Gameserver():
         )
         self.model.load_state_dict(
             torch.load(
-                f"models/{self.model_path}/main.pt", 
+                f"./webgameserver/models/{self.model_path}/main.pt", 
                 map_location = device
             )
         )
@@ -67,7 +67,7 @@ class Gameserver():
         self.game_number = self.game_number + 1
 
         model_path = (
-            f"./models/{self.model_path}/model_quantized.onnx"
+            f"./webgameserver/models/{self.model_path}/model_quantized.onnx"
         )
        
         self.sess = rt.InferenceSession(
@@ -122,20 +122,20 @@ class Gameserver():
         self.moves = self.moves + 1
 
         if self.webgame.check_win(
-                self.state, 
-                action_human, 
-                1
-            ):
+            self.state, 
+            action_human, 
+            1):
+
             print(f"Moves human to win: {self.moves}")
             if self.game_over_enable:
                 message = "You won"
                 
         if not self.next_round_no_ai:
             if self.webgame.check_win(
-                    self.state, 
-                    action_ai, 
-                    -1
-                ):
+                self.state, 
+                action_ai, 
+                -1):
+
                 print(f"Moves ai to win: {self.moves}")
                 if self.game_over_enable:
                     message = "AI won"

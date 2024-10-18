@@ -14,7 +14,7 @@ import concurrent.futures
 from mcts import MCTS
 from tqdm import trange
 from game import Battleship
-from residualnetwork import ResidualNetwork
+from gameserver_django.webgameserver.residualnetwork import ResidualNetwork
 
 class AlphaZero:
     def __init__(self):

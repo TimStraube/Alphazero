@@ -16,38 +16,34 @@ document.addEventListener("DOMContentLoaded", function() {
     let fill_opacity = 0.1;
 
     function sendSvgSourceToPython(source) {
-        fetch('/', {
+        fetch('/process_svg_source/', {
             method: 'POST',
-            headers:
-            {
+            headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({Source : source})
+            body: JSON.stringify({ Source: source })
         })
         .then(response => response.json())
-            .then(data => {
-                const json_data = JSON.parse(
-                    JSON.stringify(data)
-                );
-                const state = json_data.State
-                const player = json_data.Player
-                const failed = json_data.Failed
-                const message = json_data.Message
-
-                if (~failed) {
-                    updateLeftBoard(state)
-                    updateRightBoard(state)
-                }
-
-                if (message == "You won") {
-                    window.location.href = "won/"
-                } 
-
-                if (message == "AI won") {
-                    window.location.href = "loss/"
-                } 
+        .then(data => {
+            const state = data.State;
+            const player = data.Player;
+            const failed = data.Failed;
+            const message = data.Message;
+    
+            if (!failed) {
+                updateLeftBoard(state);
+                updateRightBoard(state);
             }
-        )
+    
+            if (message === "You won") {
+                window.location.href = "won/";
+            } 
+    
+            if (message === "AI won") {
+                window.location.href = "loss/";
+            } 
+        })
+        .catch(error => console.error('Error:', error));
     }
 
     function updateLeftBoard(state) 
