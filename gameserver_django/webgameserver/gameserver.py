@@ -10,6 +10,7 @@ import socket
 import torch
 import numpy
 import time
+from django.http import JsonResponse
 from webgameserver.residualnetwork import ResidualNetwork
 from webgameserver.mcts import MCTS
 from gtts import gTTS
@@ -18,8 +19,6 @@ import onnxruntime as rt
 from webgameserver.webgame import WebBattleship
 from flask import Flask
 from flask import render_template
-from flask import jsonify
-from flask import request
 from onnxruntime.quantization import quantize_dynamic
 from onnxruntime.quantization import QuantType
 
@@ -145,17 +144,17 @@ class Gameserver():
         else:
             self.next_round_no_ai = False
 
-        json_message = jsonify({
+        json_message = {
             "State" : self.state.tolist(),
             "Player" : self.player,
             "Failed" : 0,
             "Message" : message
-        })
+        }
         
         # gtts_message = gTTS(message, lang="de", slow=False)
         # gtts_message.save("sample.mp3")
         # playsound("sample.mp3")
-        return json_message
+        return JsonResponse(json_message)
 
     # handle actions for game with human and computer agent
     def doubleclick(self, action):
@@ -199,7 +198,7 @@ class Gameserver():
                 self.player
             )
 
-        json_message = jsonify({
+        json_message = JsonResponse({
             "State" : state.tolist(),
             "Player" : self.player,
             "Failed" : 0,
@@ -213,48 +212,10 @@ class Gameserver():
         return json_message
         
     def fcn_get_moves_array(self):
-        json_message = jsonify({'Moves' : self.moves_array})
+        json_message = JsonResponse({'Moves' : self.moves_array})
         return json_message
 
 gameserver = Gameserver()
-
-# handle requests for game with human and computer agent 
-@app.route('/', methods=['GET', 'POST', 'HEAD']) 
-def menu():
-    if request.method == 'POST':
-        req = request.get_json()
-        return gameserver.singleclick(
-            req["Source"]
-        )
-    else:
-        try:
-            num_searches = int(request.args.get('searches'))
-        except:
-            num_searches = 100
-        gameserver.restart(num_searches)
-        return render_template(
-            'menu.html',
-            boardsize = gameserver.webgame.size
-        )
-
-# handle requests for game with human and computer agent 
-@app.route('/', methods=['GET', 'POST', 'HEAD']) 
-def game():
-    if request.method == 'POST':
-        req = request.get_json()
-        return gameserver.singleclick(
-            req["Source"]
-        )
-    else:
-        try:
-            num_searches = int(request.args.get('searches'))
-        except:
-            num_searches = 100
-        gameserver.restart(num_searches)
-        return render_template(
-            'game.html',
-            boardsize = gameserver.webgame.size
-        )
 
 @app.errorhandler(404)
 def not_found(error):

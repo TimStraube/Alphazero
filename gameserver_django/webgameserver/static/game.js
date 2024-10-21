@@ -142,7 +142,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 rect.onclick = function ()
                 {
                     var svgSource = text.textContent
-                    sendSvgSourceToPython(svgSource)
+                    console.log(row, column)
+                    // sendSvgSourceToPython(svgSource)
                 };
 
                 text.setAttribute(
@@ -215,7 +216,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 rect.onclick = function () 
                 {
                     var svgSource = text.textContent;
-                    sendSvgSourceToPython(svgSource);
+                    // sendSvgSourceToPython(svgSource);
                 };
                 text.setAttribute(
                     "x", 
@@ -321,25 +322,25 @@ document.addEventListener("DOMContentLoaded", function() {
                             position
                         )) 
                         {
-                            sendSvgSourceToPython(position);
+                            // sendSvgSourceToPython(position);
                         }
                     }
                 }
                 if (final_transcript.includes("your")) 
                 {
-                    sendSvgSourceToPython("A1");
+                    // sendSvgSourceToPython("A1");
                 }
                 if (final_transcript.includes(
                     "white"
                 )) 
                 {
-                    updateZustand(0)
+                    // updateZustand(0)
                 }
                 if (final_transcript.includes(
                     "engage"
                 )) 
                 {
-                    updateZustand(1)
+                    // updateZustand(1)
                 }
                 removeCharsInterval = setInterval(
                     removeFirstChar, 

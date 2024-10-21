@@ -53,10 +53,13 @@ def process_svg_source(request):
     # )
 
     if request.method == 'POST':
-        req = request.get_json()
+        req = json.loads(request.body.decode('utf-8'))
+        source = req.get("Source")
         json_response = gameserver.singleclick(
-            req["Source"]
+             source
         )
+        if source is None:
+                return JsonResponse({'error': 'Source field is missing'}, status=400)
         return json_response
 
 def custom_404(request, exception):
