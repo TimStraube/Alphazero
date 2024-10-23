@@ -46,4 +46,5 @@ button {
     width: 200px;
     font-family: 'EB Garamond';
     font-size: 35px; 
+    z-index: 1;
 }

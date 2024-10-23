@@ -1,65 +1,78 @@
 class Game {
     constructor(size) {
         // player 0 and 3 as indices for map
-        this.rows = size;
-        this.columns = size;
         this.size = size;
-        this.actions = this.columns * this.rows;
-        this.moves = 0;
-    }
-
-    toString() {
-        return "battleship";
+        this.actions = this.size * this.size;
+        this.moves = 0
+        this.user = 0
+        this.alphazero = 1
     }
 
     restart(player) {
-        this.repeat = false;
-        this.ships_possible = [[3, 2], [3, 2]];
-        this.num_shipparts = this.ships_possible[0].reduce((a, b) => a + b, 0);
-        // initialization of all submaps
-        let state = Array.from({ length: 6 }, () => Array.from({ length: this.columns }, () => Array(this.rows).fill(0)));
-        this.ships = [[], []];
-        this.placeShips(state, player);
-        this.placeShips(state, -player);
-        return state;
+        // player 0 or 1
+        this.repeat = false
+        this.player = player
+
+        this.ships_possible = [[9, 5, 4, 3, 2], [9, 5, 4, 3, 2]]
+        for (let ships of this.ships_possible) {
+            for (let ship of ships) {
+                if (ship > this.size) {
+                    throw new Error(`Ship length ${ship} is larger than the board size ${this.size}`);
+                }
+            }
+        }
+
+        this.num_shipparts = this.ships_possible[0].reduce((a, b) => a + b, 0)
+        if (this.num_shipparts >= this.size * this.size) {
+            throw new Error(`Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`);
+        }
+        
+        this.state_ships = Array.from(
+            { length: 2 }, 
+            () => Array.from(
+                { length: this.size }, 
+                () => Array(this.size).fill(0)
+            )
+        );
+        this.state_hits = Array.from(
+            { length: 2 }, 
+            () => Array.from(
+                { length: this.size }, 
+                () => Array(this.size).fill(0)
+            )
+        );
+        this.state_experiance = Array.from(
+            { length: 2 }, 
+            () => Array.from(
+                { length: this.size }, 
+                () => Array(this.size).fill(0)
+            )
+        );
+        this.ships = [[], []]
+        this.placeShips(this.player)
+        this.placeShips(this.player ^ 1)
     }
 
-    shipIndex(player) {
-        // f: {-1, 1} -> {0, 3}
-        return 3 * (player > 0 ? 1 : 0);
-    }
+    step(action, player) {
+        let north = Math.floor(action / this.size);
+        let east = action % this.size;
 
-    hitIndex(player) {
-        // f: {-1, 1} -> {1, 4}
-        return 3 * (player > 0 ? 1 : 0) + 1;
-    }
-
-    knowledgeIndex(player) {
-        // f: {-1, 1} -> {2, 5}
-        return 3 * (player > 0 ? 1 : 0) + 2;
-    }
-
-    step(state, action, player) {
-        let x = Math.floor(action / this.size);
-        let y = action % this.size;
-
-        let hit = state[this.hitIndex(player)][x][y];
-        let ship = state[this.shipIndex(-player)][x][y];
+        let hit = this.state_hits[player][north][east];
+        let ship = this.state_ships[player][north][east];
 
         this.repeat = false;
 
         if (hit === 0 && ship === 0) {
             // hit water
-            state[this.hitIndex(player)][x][y] = 255;
+            this.state_hits[player][north][east] = 255;
         } else if (hit === 0 && ship === 255) {
             // hit ship
-            state[this.hitIndex(player)][x][y] = 255;
-            state[this.knowledgeIndex(player)][x][y] = 255;
+            this.state_hits[player][north][east] = 255;
+            this.state_experiance[player][north][east] = 255;
             this.repeat = true;
         } else {
             // already hit
         }
-        return state;
     }
 
     pointsBetween(p1, p2) {
@@ -77,7 +90,7 @@ class Game {
     }
 
     getValidMoves(state, player) {
-        return state[this.hitIndex(player)].flat().map(val => val === 0 ? 1 : 0);
+        return this.state_hits[player].flat().map(val => val === 0 ? 1 : 0);
     }
 
     policy(policy, state) {
@@ -88,18 +101,18 @@ class Game {
         return policy;
     }
 
-    checkWin(state, action, player) {
-        let stateHit = state[this.hitIndex(player)];
-        let stateShip = state[this.shipIndex(-player)];
+    checkWin(player) {
+        let stateHit = this.state_hits[player];
+        let stateShip = this.state_ships[player ^ 1];
         let hitSum = stateShip.flat().reduce((sum, val, idx) => sum + (val * stateHit.flat()[idx]), 0);
         return hitSum === this.num_shipparts;
     }
 
-    terminated(state, action) {
-        if (this.checkWin(state, action, 1)) {
+    terminated() {
+        if (this.checkWin(this.user)) {
             return [1, true];
         }
-        if (this.checkWin(state, action, -1)) {
+        if (this.checkWin(this.alphazero)) {
             return [1, true];
         }
         return [0, false];
@@ -116,15 +129,18 @@ class Game {
         }
     }
 
-    getEncodedState(state) {
-        let obsA = state.slice(this.hitIndex(1), this.knowledgeIndex(1) + 1).flat().map(val => val === 255 ? 1.0 : 0.0);
-        let obsB = state.slice(this.hitIndex(-1), this.knowledgeIndex(-1) + 1).flat().map(val => val === 255 ? 1.0 : 0.0);
-        let observation = new Float32Array([...obsB, ...obsA]);
-        return observation;
+    getEncodedState() {
+        // state_ships user, state_hits user, state_ships alphazero, state_hits alphazero, state_experiance user, state_experiance alphazero
+        let encodedState = [];
+        encodedState = encodedState.concat(...this.state_ships[this.user].flat());
+        encodedState = encodedState.concat(...this.state_hits[this.user].flat());
+        encodedState = encodedState.concat(...this.state_ships[this.alphazero].flat());
+        encodedState = encodedState.concat(...this.state_hits[this.alphazero].flat());
+        return new Float32Array(encodedState.map(val => val === 255 ? 1.0 : 0.0));
     }
 
-    placeShips(state, player) {
-        for (let ship of this.ships_possible[player > 0 ? 1 : 0]) {
+    placeShips(player) {
+        for (let ship of this.ships_possible[player]) {
             let randomDirection = Math.floor(Math.random() * 2);
 
             let positions = [];
@@ -137,10 +153,10 @@ class Game {
 
                 let shipPossibleSqueezed;
                 if (randomDirection) {
-                    let shipMap = state[this.shipIndex(player)];
+                    let shipMap = this.state_ships[player] 
                     shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx]);
                 } else {
-                    let transposedShipMap = this.transpose(state[this.shipIndex(player)]);
+                    let transposedShipMap = this.transpose(this.state_ships[player]);
                     shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx]);
                 }
 
@@ -168,10 +184,10 @@ class Game {
 
             let shipArray = this.pointsBetween(p1, p2);
 
-            this.ships[player > 0 ? 1 : 0].push(shipArray);
+            this.ships[player].push(shipArray);
 
             for (let point of shipArray) {
-                state[this.shipIndex(player)][point[0]][point[1]] = 255;
+                this.state_ships[player][point[0]][point[1]] = 255;
             }
         }
     }
@@ -223,6 +239,9 @@ document.addEventListener("DOMContentLoaded", function() {
     const onnxSession = new onnx.InferenceSession()
     loadModel()
 
+    var game = new Game(9)
+    game.restart(1)
+
     function loadModel() {
         // load the ONNX model file
         onnxSession.loadModel("/static/models/model.onnx").then(() => {
@@ -243,8 +262,9 @@ document.addEventListener("DOMContentLoaded", function() {
             const outputTensor = output.values().next().value;
             if (outputTensor) {
                 console.log(`Model output tensor: ${outputTensor.data}.`);
-                const predictedClass = outputTensor.data.indexOf(Math.max(...outputTensor.data));
-                console.log(`Predicted class: ${predictedClass}`);
+                const action = outputTensor.data.indexOf(Math.max(...outputTensor.data));
+                console.log(`Action: ${action}`);
+                game.step(action, game.alphazero)
             } else {
                 console.error("Model did not produce any output.");
             }
@@ -252,31 +272,6 @@ document.addEventListener("DOMContentLoaded", function() {
             console.error("Error during model execution:", error);
         });
     }
-
-    function getEncodedState(state) {
-        // Define the hitIndex and knowledgeIndex functions
-        function hitIndex(player) {
-            // Implement the logic for hitIndex based on your requirements
-            // This is a placeholder implementation
-            return player === 1 ? 0 : 3 * 9 * 9;
-        }
-    
-        function knowledgeIndex(player) {
-            // Implement the logic for knowledgeIndex based on your requirements
-            // This is a placeholder implementation
-            return player === 1 ? 2 * 9 * 9 - 1 : 5 * 9 * 9 - 1;
-        }
-    
-        // Extract the relevant slices from the input array
-        const obsA = state.slice(hitIndex(1), knowledgeIndex(1) + 1).map(value => value === 255 ? 1.0 : 0.0);
-        const obsB = state.slice(hitIndex(-1), knowledgeIndex(-1) + 1).map(value => value === 255 ? 1.0 : 0.0);
-    
-        // Concatenate the two resulting arrays
-        const observation = new Float32Array([...obsB, ...obsA]);
-    
-        return observation;
-    }
-    
 
     function sendSvgSourceToPython(source) {
         fetch('/process_svg_source/', {
@@ -405,8 +400,9 @@ document.addEventListener("DOMContentLoaded", function() {
                 rect.onclick = function ()
                 {
                     var svgSource = text.textContent
+                    game.step(row * size + column, game.user)
                     console.log(row, column)
-                    encoded_state = getEncodedState(state)
+                    encoded_state = game.getEncodedState(state)
                     moveAi(encoded_state)
                 };
 
@@ -479,48 +475,52 @@ document.addEventListener("DOMContentLoaded", function() {
                 )
                 rect.onclick = function () 
                 {
-                    var svgSource = text.textContent;
-                };
+                    var svgSource = text.textContent
+                    game.step(row * size + column, game.user)
+                    console.log(row, column)
+                    encoded_state = game.getEncodedState(state)
+                    moveAi(encoded_state)
+                }
                 text.setAttribute(
                     "x", 
                     rectX + 20 / size + "%"
-                );
+                )
                 text.setAttribute(
                     "y", 
                     rectY + 40 / size + "%"
-                );
+                )
                 text.setAttribute("font-size", "20");
                 text.setAttribute("fill", "black");
                 text.setAttribute("text-anchor", "middle");
                 text.setAttribute(
                     "dominant-baseline", 
                     "middle"
-                );
+                )
                 text.textContent = (
                     String.fromCharCode(row + 65) + 
                     (column + 1)
-                );
+                )
                 rect.setAttribute("x", rectX + "%");
                 rect.setAttribute("y", rectY + "%");
                 rect.setAttribute(
                     "width", 40 / size + "%"
-                );
+                )
                 rect.setAttribute(
                     "height", 80 / size + "%"
-                );
+                )
                 rect.setAttribute(
                     "style", 
                     "fill: blue; stroke: black; stroke-width: 2; fill-opacity: 0.1; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
-                );
+                )
                 // Rounded corners
-                rect.setAttribute("rx", "1%");
-                rect.setAttribute("ry", "1%");
-                grid.appendChild(text);
-                grid.appendChild(rect);
+                rect.setAttribute("rx", "1%")
+                rect.setAttribute("ry", "1%")
+                grid.appendChild(text)
+                grid.appendChild(rect)
 
-                rectY += 80 / size;
+                rectY += 80 / size
             }
-            rectX += 40 / size;
+            rectX += 40 / size
         }
 
         // Resize the grid to fit its containing rectangles
