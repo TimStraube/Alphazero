@@ -18,7 +18,7 @@
             user-scalable=0">
 </head>
 <body style="
-        background-image: url('/static/img/defeat.jpg');
+        background-image: url('/static/img/defeat.webp');
         background-repeat: no-repeat;
         background-attachment: fixed;
         background-size: cover;
@@ -61,73 +61,4 @@
         </span>
     </div>
 </body>
-<script>
-    var infoline = document.getElementById(
-        "infoline"
-    )
-    var buttonStart = document.getElementById(
-        "start"
-    )
-    var buttonReset = document.getElementById(
-        "reset"
-    )
-
-    document.body.style.backgroundImage = 'url(/static/img/defeat.jpg)'
-    infoline.innerText = "Defeat" 
-
-    var speechElement = new webkitSpeechRecognition();
-    speechElement.lang = 'de-DE';
-    speechElement.interimResults = true;
-    speechElement.continuous = true;
-    var final_transcript = '';
-    var removeCharsInterval = null;
-    speechElement.start();
-
-    function removeFirstChar()
-    {
-        final_transcript = final_transcript.substring(1);
-        document.getElementById('final').innerHTML = final_transcript;
-        console.log(final_transcript);
-        if (final_transcript.length < 1)
-        {
-            clearInterval(removeCharsInterval);
-        }
-        return;
-    }
-
-    speechElement.onresult = function(event) 
-    {
-        var interim_transcript = '';
-        for(var i = event.resultIndex; i < event.results.length; ++i) 
-        {
-            if (event.results[i].isFinal) 
-            {
-                final_transcript += event.results[i][0].transcript;
-                for (let ii = 65; ii <= (65 + size - 1); ii++) { 
-                    console.log(ii)
-                    let letter = String.fromCharCode(ii).toUpperCase();
-                    for (let number = 1; number <= size; number++) {
-                        let position = letter + number;
-                        if (final_transcript.includes(
-                            position
-                        )) 
-                        {
-                            sendSvgSourceToPython(position);
-                        }
-                    }
-                }
-                removeCharsInterval = setInterval(
-                    removeFirstChar, 
-                    100
-                );
-            } else
-            {
-                interim_transcript += event.results[i][0].transcript;
-                console.log(interim_transcript)
-            }
-        }
-        document.getElementById('final').innerHTML = final_transcript;
-        document.getElementById('interim').innerHTML = interim_transcript;
-    }
-</script>
 </html>

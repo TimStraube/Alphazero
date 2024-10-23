@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function loadModel() {
         // load the ONNX model file
-        onnxSession.loadModel("/static/models/model.onnx").then(() => {
+        onnxSession.loadModel("/models/model.onnx").then(() => {
             console.log("Model loaded successfully.");
         }).catch((error) => {
             console.error("Error during model loading:", error);
