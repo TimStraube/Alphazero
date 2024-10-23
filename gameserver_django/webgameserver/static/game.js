@@ -1,19 +1,282 @@
+class Game {
+    constructor(size) {
+        // player 0 and 3 as indices for map
+        this.rows = size;
+        this.columns = size;
+        this.size = size;
+        this.actions = this.columns * this.rows;
+        this.moves = 0;
+    }
+
+    toString() {
+        return "battleship";
+    }
+
+    restart(player) {
+        this.repeat = false;
+        this.ships_possible = [[3, 2], [3, 2]];
+        this.num_shipparts = this.ships_possible[0].reduce((a, b) => a + b, 0);
+        // initialization of all submaps
+        let state = Array.from({ length: 6 }, () => Array.from({ length: this.columns }, () => Array(this.rows).fill(0)));
+        this.ships = [[], []];
+        this.placeShips(state, player);
+        this.placeShips(state, -player);
+        return state;
+    }
+
+    shipIndex(player) {
+        // f: {-1, 1} -> {0, 3}
+        return 3 * (player > 0 ? 1 : 0);
+    }
+
+    hitIndex(player) {
+        // f: {-1, 1} -> {1, 4}
+        return 3 * (player > 0 ? 1 : 0) + 1;
+    }
+
+    knowledgeIndex(player) {
+        // f: {-1, 1} -> {2, 5}
+        return 3 * (player > 0 ? 1 : 0) + 2;
+    }
+
+    step(state, action, player) {
+        let x = Math.floor(action / this.size);
+        let y = action % this.size;
+
+        let hit = state[this.hitIndex(player)][x][y];
+        let ship = state[this.shipIndex(-player)][x][y];
+
+        this.repeat = false;
+
+        if (hit === 0 && ship === 0) {
+            // hit water
+            state[this.hitIndex(player)][x][y] = 255;
+        } else if (hit === 0 && ship === 255) {
+            // hit ship
+            state[this.hitIndex(player)][x][y] = 255;
+            state[this.knowledgeIndex(player)][x][y] = 255;
+            this.repeat = true;
+        } else {
+            // already hit
+        }
+        return state;
+    }
+
+    pointsBetween(p1, p2) {
+        let points = [];
+
+        if (p1[0] === p2[0]) {
+            let yValues = Array.from({ length: p2[1] - p1[1] + 1 }, (_, i) => i + p1[1]);
+            points = yValues.map(y => [p1[0], y]);
+        } else if (p1[1] === p2[1]) {
+            let xValues = Array.from({ length: p2[0] - p1[0] + 1 }, (_, i) => i + p1[0]);
+            points = xValues.map(x => [x, p1[1]]);
+        }
+
+        return points;
+    }
+
+    getValidMoves(state, player) {
+        return state[this.hitIndex(player)].flat().map(val => val === 0 ? 1 : 0);
+    }
+
+    policy(policy, state) {
+        let validMoves = state[this.hitIndex(1)].flat().map(val => val === 0 ? 1 : 0);
+        policy = policy.map((val, idx) => val * validMoves[idx]);
+        let sum = policy.reduce((a, b) => a + b, 0);
+        policy = policy.map(val => val / sum);
+        return policy;
+    }
+
+    checkWin(state, action, player) {
+        let stateHit = state[this.hitIndex(player)];
+        let stateShip = state[this.shipIndex(-player)];
+        let hitSum = stateShip.flat().reduce((sum, val, idx) => sum + (val * stateHit.flat()[idx]), 0);
+        return hitSum === this.num_shipparts;
+    }
+
+    terminated(state, action) {
+        if (this.checkWin(state, action, 1)) {
+            return [1, true];
+        }
+        if (this.checkWin(state, action, -1)) {
+            return [1, true];
+        }
+        return [0, false];
+    }
+
+    changePerspective(state, player) {
+        let returnState = Array.from({ length: 6 }, () => Array.from({ length: this.columns }, () => Array(this.rows).fill(0)));
+        if (player === -1) {
+            let stateCopy = state.slice(0, 3);
+            returnState = state.slice(3, 6).concat(stateCopy);
+            return returnState;
+        } else {
+            return state;
+        }
+    }
+
+    getEncodedState(state) {
+        let obsA = state.slice(this.hitIndex(1), this.knowledgeIndex(1) + 1).flat().map(val => val === 255 ? 1.0 : 0.0);
+        let obsB = state.slice(this.hitIndex(-1), this.knowledgeIndex(-1) + 1).flat().map(val => val === 255 ? 1.0 : 0.0);
+        let observation = new Float32Array([...obsB, ...obsA]);
+        return observation;
+    }
+
+    placeShips(state, player) {
+        for (let ship of this.ships_possible[player > 0 ? 1 : 0]) {
+            let randomDirection = Math.floor(Math.random() * 2);
+
+            let positions = [];
+
+            for (let i = 0; i < this.size - ship + 1; i++) {
+                let prefix = new Array(i).fill(0);
+                let body = new Array(ship).fill(1);
+                let postfix = new Array(this.size - ship - i).fill(0);
+                let shipPossible = prefix.concat(body, postfix);
+
+                let shipPossibleSqueezed;
+                if (randomDirection) {
+                    let shipMap = state[this.shipIndex(player)];
+                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx]);
+                } else {
+                    let transposedShipMap = this.transpose(state[this.shipIndex(player)]);
+                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx]);
+                }
+
+                positions = positions.concat(shipPossibleSqueezed);
+            }
+
+            positions = this.reshape(positions, this.size - ship + 1, this.size);
+            let possiblePositions = this.where(positions, 1);
+
+            let lengthPossiblePositions = possiblePositions[0].length;
+
+            let randomShipPosition = Math.floor(Math.random() * lengthPossiblePositions);
+
+            let x = possiblePositions[0][randomShipPosition];
+            let y = possiblePositions[1][randomShipPosition];
+
+            let p1, p2;
+            if (randomDirection) {
+                p1 = [x, y];
+                p2 = [x + ship - 1, y];
+            } else {
+                p1 = [y, x];
+                p2 = [y, x + ship - 1];
+            }
+
+            let shipArray = this.pointsBetween(p1, p2);
+
+            this.ships[player > 0 ? 1 : 0].push(shipArray);
+
+            for (let point of shipArray) {
+                state[this.shipIndex(player)][point[0]][point[1]] = 255;
+            }
+        }
+    }
+
+    transpose(matrix) {
+        return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
+    }
+
+    reshape(array, rows, cols) {
+        let reshaped = [];
+        for (let i = 0; i < rows; i++) {
+            reshaped.push(array.slice(i * cols, (i + 1) * cols));
+        }
+        return reshaped;
+    }
+
+    where(array, value) {
+        let indices = [[], []];
+        for (let i = 0; i < array.length; i++) {
+            for (let j = 0; j < array[i].length; j++) {
+                if (array[i][j] === value) {
+                    indices[0].push(i);
+                    indices[1].push(j);
+                }
+            }
+        }
+        return indices;
+    }
+}
+
 document.addEventListener("DOMContentLoaded", function() {
-    let moves_player = 0;
-    let moves_ai = 0;
-    let grid = document.getElementById("svg_grid");
-    let size = 9;
-    let map_fields = size * size;
-    let rectWidth;
-    let rectHeight;
-    let startX;
-    let startY;   
-    let rectX;
-    let rectY;
-    let horizontalPadding = 2;
-    let verticalPadding = 2;
-    let strokeWidth = 2;
-    let fill_opacity = 0.1;
+    let moves_player = 0
+    let moves_ai = 0
+    let grid = document.getElementById("svg_grid")
+    let size = 9
+    let map_fields = size * size
+    let rectWidth
+    let rectHeight
+    let startX
+    let startY   
+    let rectX
+    let rectY
+    let horizontalPadding = 2
+    let verticalPadding = 2
+    let strokeWidth = 2
+    let fill_opacity = 0.1
+    let state = new Float32Array(1 * 6 * 9 * 9)
+
+    const onnxSession = new onnx.InferenceSession()
+    loadModel()
+
+    function loadModel() {
+        // load the ONNX model file
+        onnxSession.loadModel("/static/models/model.onnx").then(() => {
+            console.log("Model loaded successfully.");
+        }).catch((error) => {
+            console.error("Error during model loading:", error);
+        });
+    }
+
+    function moveAi(state) {
+        // generate model input
+        const inputTensor = new onnx.Tensor(state, 'float32', [1, 4, 9, 9]);
+        // execute the model
+        onnxSession.run([inputTensor]).then((output) => {
+            // log the output object
+            console.log("Model output:", output);
+            // consume the output
+            const outputTensor = output.values().next().value;
+            if (outputTensor) {
+                console.log(`Model output tensor: ${outputTensor.data}.`);
+                const predictedClass = outputTensor.data.indexOf(Math.max(...outputTensor.data));
+                console.log(`Predicted class: ${predictedClass}`);
+            } else {
+                console.error("Model did not produce any output.");
+            }
+        }).catch((error) => {
+            console.error("Error during model execution:", error);
+        });
+    }
+
+    function getEncodedState(state) {
+        // Define the hitIndex and knowledgeIndex functions
+        function hitIndex(player) {
+            // Implement the logic for hitIndex based on your requirements
+            // This is a placeholder implementation
+            return player === 1 ? 0 : 3 * 9 * 9;
+        }
+    
+        function knowledgeIndex(player) {
+            // Implement the logic for knowledgeIndex based on your requirements
+            // This is a placeholder implementation
+            return player === 1 ? 2 * 9 * 9 - 1 : 5 * 9 * 9 - 1;
+        }
+    
+        // Extract the relevant slices from the input array
+        const obsA = state.slice(hitIndex(1), knowledgeIndex(1) + 1).map(value => value === 255 ? 1.0 : 0.0);
+        const obsB = state.slice(hitIndex(-1), knowledgeIndex(-1) + 1).map(value => value === 255 ? 1.0 : 0.0);
+    
+        // Concatenate the two resulting arrays
+        const observation = new Float32Array([...obsB, ...obsA]);
+    
+        return observation;
+    }
+    
 
     function sendSvgSourceToPython(source) {
         fetch('/process_svg_source/', {
@@ -143,7 +406,8 @@ document.addEventListener("DOMContentLoaded", function() {
                 {
                     var svgSource = text.textContent
                     console.log(row, column)
-                    // sendSvgSourceToPython(svgSource)
+                    encoded_state = getEncodedState(state)
+                    moveAi(encoded_state)
                 };
 
                 text.setAttribute(
@@ -216,7 +480,6 @@ document.addEventListener("DOMContentLoaded", function() {
                 rect.onclick = function () 
                 {
                     var svgSource = text.textContent;
-                    // sendSvgSourceToPython(svgSource);
                 };
                 text.setAttribute(
                     "x", 
