@@ -54,24 +54,24 @@ class Gameserver():
             4, 
             device
         )
-        self.model.load_state_dict(
-            torch.load(
-                f"./webgameserver/models/{self.model_path}/main.pt", 
-                map_location = device
-            )
-        )
-        self.model.eval()
-        self.mcts = MCTS(self.webgame, args, self.model)
-        self.state = self.webgame.restart(self.player)
-        self.game_number = self.game_number + 1
+        # self.model.load_state_dict(
+        #     torch.load(
+        #         f"./webgameserver/models/{self.model_path}/main.pt", 
+        #         map_location = device
+        #     )
+        # )
+        # self.model.eval()
+        # self.mcts = MCTS(self.webgame, args, self.model)
+        # self.state = self.webgame.restart(self.player)
+        # self.game_number = self.game_number + 1
 
-        model_path = (
-            f"./webgameserver/models/{self.model_path}/model_quantized.onnx"
-        )
+        # model_path = (
+        #     f"./webgameserver/models/{self.model_path}/model_quantized.onnx"
+        # )
        
-        self.sess = rt.InferenceSession(
-            model_path
-        )
+        # self.sess = rt.InferenceSession(
+        #     model_path
+        # )
 
     def singleclick(self, action):
         self.webgame.repeat = True
@@ -215,7 +215,7 @@ class Gameserver():
         json_message = JsonResponse({'Moves' : self.moves_array})
         return json_message
 
-gameserver = Gameserver()
+# gameserver = Gameserver()
 
 @app.errorhandler(404)
 def not_found(error):

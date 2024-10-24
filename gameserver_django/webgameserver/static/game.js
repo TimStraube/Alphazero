@@ -234,24 +234,24 @@ document.addEventListener("DOMContentLoaded", function() {
     let verticalPadding = 2
     let strokeWidth = 2
     let fill_opacity = 0.1
-    let state = new Float32Array(1 * 6 * 9 * 9)
-
     const onnxSession = new onnx.InferenceSession()
-    loadModel()
-
-    var game = new Game(9)
-    game.restart(1)
+    let state = new Float32Array(1 * 6 * 9 * 9)
 
     function loadModel() {
         // load the ONNX model file
-        onnxSession.loadModel("/models/model.onnx").then(() => {
+        onnxSession.loadModel("/static/models/model.onnx").then(() => {
             console.log("Model loaded successfully.");
         }).catch((error) => {
             console.error("Error during model loading:", error);
         });
     }
 
-    function moveAi(state) {
+    loadModel()
+
+    var game = new Game(9)
+    game.restart(1)
+
+    function moveAlphazero(state) {
         // generate model input
         const inputTensor = new onnx.Tensor(state, 'float32', [1, 4, 9, 9]);
         // execute the model
@@ -265,6 +265,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 const action = outputTensor.data.indexOf(Math.max(...outputTensor.data));
                 console.log(`Action: ${action}`);
                 game.step(action, game.alphazero)
+                updateLeftBoard() 
             } else {
                 console.error("Model did not produce any output.");
             }
@@ -273,51 +274,20 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-    function sendSvgSourceToPython(source) {
-        fetch('/process_svg_source/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ Source: source })
-        })
-        .then(response => response.json())
-        .then(data => {
-            const state = data.State;
-            const player = data.Player;
-            const failed = data.Failed;
-            const message = data.Message;
-    
-            if (!failed) {
-                updateLeftBoard(state);
-                updateRightBoard(state);
-            }
-    
-            if (message === "You won") {
-                window.location.href = "won/";
-            } 
-    
-            if (message === "AI won") {
-                window.location.href = "loss/";
-            } 
-        })
-        .catch(error => console.error('Error:', error));
-    }
-
-    function updateLeftBoard(state) 
+    function updateLeftBoard() 
     {
         for (let row = 0; row < size; row++) {
             for (let column = 0; column < size; column++) {
                 // field has been hit
-                if (state[2][row][column] == 255) {
+                if (game.state_experiance[game.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7;
                     color = "red";
                 // ship on field which has no been hit
-                } else if (state[3][row][column] == 255) {
+                } else if (game.state_ships[game.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7;
                     color = "grey";
                 // water
-                } else if (state[1][row][column] == 255) {
+                } else if (game.state_hits[game.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7;
                     color = "blue";
                 } else {
@@ -340,10 +310,10 @@ document.addEventListener("DOMContentLoaded", function() {
     {
         for (let row = 0; row < size; row++) {
             for (let column = 0; column < size; column++) {
-                if (state[5][row][column] == 255) {
+                if (game.state_hits[game.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7;
                     color = "red";
-                } else if (state[4][row][column] == 255) {
+                } else if (game.state_experiance[game.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7;
                     color = "blue";
                 } else {
@@ -401,9 +371,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 {
                     var svgSource = text.textContent
                     game.step(row * size + column, game.user)
+                    updateRightBoard()
                     console.log(row, column)
                     encoded_state = game.getEncodedState(state)
-                    moveAi(encoded_state)
+                    moveAlphazero(encoded_state)
                 };
 
                 text.setAttribute(
@@ -477,9 +448,10 @@ document.addEventListener("DOMContentLoaded", function() {
                 {
                     var svgSource = text.textContent
                     game.step(row * size + column, game.user)
+                    updateRightBoard()
                     console.log(row, column)
                     encoded_state = game.getEncodedState(state)
-                    moveAi(encoded_state)
+                    moveAlphazero(encoded_state)
                 }
                 text.setAttribute(
                     "x", 
@@ -547,75 +519,4 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     zeichneBoards();
-
-    var speechElement = new webkitSpeechRecognition();
-    speechElement.lang = 'de-DE';
-    speechElement.interimResults = true;
-    speechElement.continuous = true;
-    var final_transcript = '';
-    var removeCharsInterval = null;
-    speechElement.start();
-
-    function removeFirstChar()
-    {
-        final_transcript = final_transcript.substring(1);
-        document.getElementById('final').innerHTML = final_transcript;
-        console.log(final_transcript);
-        if (final_transcript.length < 1)
-        {
-            clearInterval(removeCharsInterval);
-        }
-        return;
-    }
-
-    speechElement.onresult = function(event) 
-    {
-        var interim_transcript = '';
-        for(var i = event.resultIndex; i < event.results.length; ++i) 
-        {
-            if (event.results[i].isFinal) 
-            {
-                final_transcript += event.results[i][0].transcript;
-                for (let ii = 65; ii <= (65 + size - 1); ii++) { 
-                    console.log(ii)
-                    let letter = String.fromCharCode(ii).toUpperCase();
-                    for (let number = 1; number <= size; number++) {
-                        let position = letter + number;
-                        if (final_transcript.includes(
-                            position
-                        )) 
-                        {
-                            // sendSvgSourceToPython(position);
-                        }
-                    }
-                }
-                if (final_transcript.includes("your")) 
-                {
-                    // sendSvgSourceToPython("A1");
-                }
-                if (final_transcript.includes(
-                    "white"
-                )) 
-                {
-                    // updateZustand(0)
-                }
-                if (final_transcript.includes(
-                    "engage"
-                )) 
-                {
-                    // updateZustand(1)
-                }
-                removeCharsInterval = setInterval(
-                    removeFirstChar, 
-                    100
-                );
-            } else
-            {
-                interim_transcript += event.results[i][0].transcript;
-                console.log(interim_transcript)
-            }
-        }
-        document.getElementById('final').innerHTML = final_transcript;
-        document.getElementById('interim').innerHTML = interim_transcript;
-    }
-});
+})
