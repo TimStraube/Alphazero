@@ -280,19 +280,19 @@ document.addEventListener("DOMContentLoaded", function() {
             for (let column = 0; column < size; column++) {
                 // field has been hit
                 if (game.state_experiance[game.alphazero][row][column] == 255) {
-                    dyn_fill_opacity = 0.7;
-                    color = "red";
+                    dyn_fill_opacity = 0.7
+                    color = "red"
                 // ship on field which has no been hit
                 } else if (game.state_ships[game.user][row][column] == 255) {
-                    dyn_fill_opacity = 0.7;
-                    color = "grey";
+                    dyn_fill_opacity = 0.7
+                    color = "grey"
                 // water
                 } else if (game.state_hits[game.alphazero][row][column] == 255) {
-                    dyn_fill_opacity = 0.7;
-                    color = "blue";
+                    dyn_fill_opacity = 0.7
+                    color = "blue"
                 } else {
-                    dyn_fill_opacity = 0.0;
-                    color = "blue";
+                    dyn_fill_opacity = 0.0
+                    color = "blue"
                 }
                 let rect_now = document.getElementById(
                     new String(row) +
@@ -310,15 +310,15 @@ document.addEventListener("DOMContentLoaded", function() {
     {
         for (let row = 0; row < size; row++) {
             for (let column = 0; column < size; column++) {
-                if (game.state_hits[game.alphazero][row][column] == 255) {
-                    dyn_fill_opacity = 0.7;
-                    color = "red";
-                } else if (game.state_experiance[game.alphazero][row][column] == 255) {
-                    dyn_fill_opacity = 0.7;
-                    color = "blue";
+                if (game.state_hits[game.user][row][column] == 255) {
+                    dyn_fill_opacity = 0.7
+                    color = "red"
+                } else if (game.state_experiance[game.user][row][column] == 255) {
+                    dyn_fill_opacity = 0.7
+                    color = "blue"
                 } else {
-                    dyn_fill_opacity = 0.0;
-                    color = "blue";
+                    dyn_fill_opacity = 0.0
+                    color = "blue"
                 }
                 let rect_now = document.getElementById(
                     new String(row) +
@@ -351,17 +351,17 @@ document.addEventListener("DOMContentLoaded", function() {
                 let rect = document.createElementNS(
                     "http://www.w3.org/2000/svg", 
                     "rect"
-                );
+                )
                 let text = document.createElementNS(
                     "http://www.w3.org/2000/svg", 
                     "text"
-                );
+                )
 
                 rect.setAttribute(
                     'id', 
                     new String(row) +
                     new String(column)
-                );
+                )
                 rect.setAttribute(
                     "class",
                     "prevent-select"
@@ -375,47 +375,47 @@ document.addEventListener("DOMContentLoaded", function() {
                     console.log(row, column)
                     encoded_state = game.getEncodedState(state)
                     moveAlphazero(encoded_state)
-                };
+                }
 
                 text.setAttribute(
                     "x", 
                     rectX + 20 / size + "%"
-                );
+                )
                 text.setAttribute(
                     "y", 
                     rectY + 40 / size + "%"
-                );
-                text.setAttribute("font-size", "20");
-                text.setAttribute("fill", "black");
-                text.setAttribute("text-anchor", "middle");
+                )
+                text.setAttribute("font-size", "20")
+                text.setAttribute("fill", "black")
+                text.setAttribute("text-anchor", "middle")
                 text.setAttribute(
                     "dominant-baseline", 
                     "middle"
-                );
+                )
                 text.textContent = (
                     String.fromCharCode(row + 65) +
                     (column + 1)
-                );
-                rect.setAttribute("x", rectX + "%");
-                rect.setAttribute("y", rectY + "%");
+                )
+                rect.setAttribute("x", rectX + "%")
+                rect.setAttribute("y", rectY + "%")
                 rect.setAttribute(
                     "width", 40 / size + "%"
-                );
+                )
                 rect.setAttribute(
                     "height", 80 / size + "%"
-                );
+                )
                 rect.setAttribute(
                     "style", 
-                    "fill: grey; stroke: black; stroke-width: 2; fill-opacity:  " + fill_opacity + "; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
-                );
+                    "fill: grey; stroke: black; stroke-width: 2; fill-opacity: 0.0; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
+                )
                 // Rounded corners
-                rect.setAttribute("rx", "1%");
-                rect.setAttribute("ry", "1%");
-                grid.appendChild(text);
-                grid.appendChild(rect);
-                rectY += 80 / size;
+                rect.setAttribute("rx", "1%")
+                rect.setAttribute("ry", "1%")
+                grid.appendChild(text)
+                grid.appendChild(rect)
+                rectY += 80 / size
             }
-            rectX += 40 / size;
+            rectX += 40 / size
         }
         
         rectWidth = 5
@@ -482,7 +482,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 )
                 rect.setAttribute(
                     "style", 
-                    "fill: blue; stroke: black; stroke-width: 2; fill-opacity: 0.1; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
+                    "fill: grey; stroke: black; stroke-width: 2; fill-opacity: 0.0; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
                 )
                 // Rounded corners
                 rect.setAttribute("rx", "1%")
