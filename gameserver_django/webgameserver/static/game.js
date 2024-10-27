@@ -6,6 +6,17 @@ class Game {
         this.moves = 0
         this.user = 0
         this.alphazero = 1
+        this.onnxSession = new onnx.InferenceSession()
+        this.loadModel()
+    }
+
+    loadModel() {
+        // load the ONNX model file
+        this.onnxSession.loadModel("/static/models/model.onnx").then(() => {
+            console.log("Model loaded successfully.");
+        }).catch((error) => {
+            console.error("Error during model loading:", error);
+        });
     }
 
     restart(player) {
@@ -13,7 +24,7 @@ class Game {
         this.repeat = false
         this.player = player
 
-        this.ships_possible = [[9, 5, 4, 3, 2], [9, 5, 4, 3, 2]]
+        this.ships_possible = [[5, 4, 3, 2], [5, 4, 3, 2]]
         for (let ships of this.ships_possible) {
             for (let ship of ships) {
                 if (ship > this.size) {
@@ -139,8 +150,8 @@ class Game {
         return new Float32Array(encodedState.map(val => val === 255 ? 1.0 : 0.0));
     }
 
-    placeShips(player) {
-        for (let ship of this.ships_possible[player]) {
+    placeShips(state, player) {
+        for (let ship of this.ships_possible[Number(player > 0)]) {
             let randomDirection = Math.floor(Math.random() * 2);
 
             let positions = [];
@@ -153,13 +164,14 @@ class Game {
 
                 let shipPossibleSqueezed;
                 if (randomDirection) {
-                    let shipMap = this.state_ships[player] 
+                    shipPossibleSqueezed = this.state_ships[player] * shipPossible;
+
+                    let shipMap = this.state_ships[player];
                     shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx]);
                 } else {
                     let transposedShipMap = this.transpose(this.state_ships[player]);
                     shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx]);
                 }
-
                 positions = positions.concat(shipPossibleSqueezed);
             }
 
@@ -184,12 +196,13 @@ class Game {
 
             let shipArray = this.pointsBetween(p1, p2);
 
-            this.ships[player].push(shipArray);
+            this.ships[Number(player > 0)].push(shipArray);
 
             for (let point of shipArray) {
                 this.state_ships[player][point[0]][point[1]] = 255;
             }
         }
+        console.log(JSON.stringify(this.state_ships));
     }
 
     transpose(matrix) {
@@ -219,6 +232,8 @@ class Game {
 }
 
 document.addEventListener("DOMContentLoaded", function() {
+    const nj = window.nj; 
+
     let moves_player = 0
     let moves_ai = 0
     let grid = document.getElementById("svg_grid")
@@ -234,36 +249,24 @@ document.addEventListener("DOMContentLoaded", function() {
     let verticalPadding = 2
     let strokeWidth = 2
     let fill_opacity = 0.1
-    const onnxSession = new onnx.InferenceSession()
     let state = new Float32Array(1 * 6 * 9 * 9)
-
-    function loadModel() {
-        // load the ONNX model file
-        onnxSession.loadModel("/static/models/model.onnx").then(() => {
-            console.log("Model loaded successfully.");
-        }).catch((error) => {
-            console.error("Error during model loading:", error);
-        });
-    }
-
-    loadModel()
 
     var game = new Game(9)
     game.restart(1)
 
-    function moveAlphazero(state) {
+    function stepAlphazero(state) {
         // generate model input
         const inputTensor = new onnx.Tensor(state, 'float32', [1, 4, 9, 9]);
         // execute the model
-        onnxSession.run([inputTensor]).then((output) => {
+        game.onnxSession.run([inputTensor]).then((output) => {
             // log the output object
-            console.log("Model output:", output);
+            // console.log("Model output:", output);
             // consume the output
             const outputTensor = output.values().next().value;
             if (outputTensor) {
-                console.log(`Model output tensor: ${outputTensor.data}.`);
+                // console.log(`Model output tensor: ${outputTensor.data}.`);
                 const action = outputTensor.data.indexOf(Math.max(...outputTensor.data));
-                console.log(`Action: ${action}`);
+                // console.log(`Action: ${action}`);
                 game.step(action, game.alphazero)
                 updateLeftBoard() 
             } else {
@@ -310,10 +313,10 @@ document.addEventListener("DOMContentLoaded", function() {
     {
         for (let row = 0; row < size; row++) {
             for (let column = 0; column < size; column++) {
-                if (game.state_hits[game.user][row][column] == 255) {
+                if (game.state_ships[game.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
-                } else if (game.state_experiance[game.user][row][column] == 255) {
+                } else if (game.state_hits[game.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "blue"
                 } else {
@@ -372,9 +375,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     var svgSource = text.textContent
                     game.step(row * size + column, game.user)
                     updateRightBoard()
-                    console.log(row, column)
+                    // console.log(row, column)
                     encoded_state = game.getEncodedState(state)
-                    moveAlphazero(encoded_state)
+                    stepAlphazero(encoded_state)
                 }
 
                 text.setAttribute(
@@ -449,9 +452,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     var svgSource = text.textContent
                     game.step(row * size + column, game.user)
                     updateRightBoard()
-                    console.log(row, column)
+                    // console.log(row, column)
                     encoded_state = game.getEncodedState(state)
-                    moveAlphazero(encoded_state)
+                    stepAlphazero(encoded_state)
                 }
                 text.setAttribute(
                     "x", 
