@@ -4,8 +4,8 @@ contact: hi@optimalpi.com
 licence: MIT
 """
 
-from webgameserver.game import Battleship
-from webgameserver.point import Point
+from game import Battleship
+from point import Point
 
 class WebBattleship(Battleship):
     battle = 0

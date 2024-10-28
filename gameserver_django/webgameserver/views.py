@@ -3,7 +3,7 @@ import random
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from webgameserver.gameserver import Gameserver
+from Alphazero.gameserver_django.gameserver import Gameserver
 
 gameserver = Gameserver()
 

@@ -14,9 +14,9 @@ import onnxruntime as ort
 import os
 from onnxruntime.quantization import quantize_dynamic
 from onnxruntime.quantization import QuantType
-from webgameserver.residualnetwork import ResidualNetwork
-from webgameserver.game import Battleship
-from webgameserver.mcts import MCTS
+from residualnetwork import ResidualNetwork
+from game import Battleship
+from mcts import MCTS
         
 class ConvertModel():
     def __init__(self):

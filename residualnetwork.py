@@ -5,7 +5,7 @@ licence: MIT
 """
 
 import torch.nn as nn
-from webgameserver.residualblock import ResidualBlock
+from residualblock import ResidualBlock
 
 class ResidualNetwork(nn.Module):
     """Residual network

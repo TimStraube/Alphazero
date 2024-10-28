@@ -6,7 +6,7 @@ licence: MIT
 
 import torch
 import numpy
-from webgameserver.node import Node
+from node import Node
 
 class MCTS:
     def __init__(self, game, args, model):

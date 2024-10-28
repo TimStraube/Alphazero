@@ -7,7 +7,7 @@ licence: MIT
 import tensorflow as tf
 import random
 import numpy
-from gameserver_django.webgameserver.residualnetwork import ResidualNetwork
+from residualnetwork import ResidualNetwork
 from game import Battleship
 from mcts import MCTS
 

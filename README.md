@@ -18,4 +18,4 @@ The most capable agent achives victory in about 29 moves in the mean on a 9x9 ba
 
 Start training with ```python3 alphazero.py```.
 
-Run ```python3 manage.py runserver``` to start the django server locally.
+To play against a model first change into the django server directory ```cd gameserver_django```. Then run ```python3 manage.py runserver``` to start the django server locally.
