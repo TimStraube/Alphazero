@@ -1,8 +1,8 @@
 class Game {
     constructor(size) {
         // player 0 and 3 as indices for map
-        this.size = size;
-        this.actions = this.size * this.size;
+        this.size = size
+        this.actions = this.size * this.size
         this.moves = 0
         this.user = 0
         this.alphazero = 1
@@ -13,13 +13,13 @@ class Game {
     loadModel() {
         // load the ONNX model file
         this.onnxSession.loadModel("/static/models/model.onnx").then(() => {
-            console.log("Model loaded successfully.");
+            console.log("Model loaded successfully.")
         }).catch((error) => {
-            console.error("Error during model loading:", error);
+            console.error("Error during model loading:", error)
         });
     }
 
-    restart(player) {
+    restart(state_ships, player) {
         // player 0 or 1
         this.repeat = false
         this.player = player
@@ -28,14 +28,14 @@ class Game {
         for (let ships of this.ships_possible) {
             for (let ship of ships) {
                 if (ship > this.size) {
-                    throw new Error(`Ship length ${ship} is larger than the board size ${this.size}`);
+                    throw new Error(`Ship length ${ship} is larger than the board size ${this.size}`)
                 }
             }
         }
 
         this.num_shipparts = this.ships_possible[0].reduce((a, b) => a + b, 0)
         if (this.num_shipparts >= this.size * this.size) {
-            throw new Error(`Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`);
+            throw new Error(`Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`)
         }
         
         this.state_ships = Array.from(
@@ -44,195 +44,195 @@ class Game {
                 { length: this.size }, 
                 () => Array(this.size).fill(0)
             )
-        );
+        )
         this.state_hits = Array.from(
             { length: 2 }, 
             () => Array.from(
                 { length: this.size }, 
                 () => Array(this.size).fill(0)
             )
-        );
+        )
         this.state_experiance = Array.from(
             { length: 2 }, 
             () => Array.from(
                 { length: this.size }, 
                 () => Array(this.size).fill(0)
             )
-        );
+        )
         this.ships = [[], []]
-        this.placeShips(this.player)
-        this.placeShips(this.player ^ 1)
+        this.placeShips(state_ships, this.player)
+        this.placeShips(state_ships, this.player ^ 1)
     }
 
     step(action, player) {
-        let north = Math.floor(action / this.size);
-        let east = action % this.size;
+        let north = Math.floor(action / this.size)
+        let east = action % this.size
 
-        let hit = this.state_hits[player][north][east];
-        let ship = this.state_ships[player][north][east];
+        let hit = this.state_hits[player][north][east]
+        let ship = this.state_ships[player][north][east]
 
-        this.repeat = false;
+        this.repeat = false
 
         if (hit === 0 && ship === 0) {
             // hit water
-            this.state_hits[player][north][east] = 255;
+            this.state_hits[player][north][east] = 255
         } else if (hit === 0 && ship === 255) {
             // hit ship
-            this.state_hits[player][north][east] = 255;
-            this.state_experiance[player][north][east] = 255;
-            this.repeat = true;
+            this.state_hits[player][north][east] = 255
+            this.state_experiance[player][north][east] = 255
+            this.repeat = true
         } else {
             // already hit
         }
     }
 
     pointsBetween(p1, p2) {
-        let points = [];
+        let points = []
 
         if (p1[0] === p2[0]) {
-            let yValues = Array.from({ length: p2[1] - p1[1] + 1 }, (_, i) => i + p1[1]);
-            points = yValues.map(y => [p1[0], y]);
+            let yValues = Array.from({ length: p2[1] - p1[1] + 1 }, (_, i) => i + p1[1])
+            points = yValues.map(y => [p1[0], y])
         } else if (p1[1] === p2[1]) {
-            let xValues = Array.from({ length: p2[0] - p1[0] + 1 }, (_, i) => i + p1[0]);
-            points = xValues.map(x => [x, p1[1]]);
+            let xValues = Array.from({ length: p2[0] - p1[0] + 1 }, (_, i) => i + p1[0])
+            points = xValues.map(x => [x, p1[1]])
         }
 
-        return points;
+        return points
     }
 
     getValidMoves(state, player) {
-        return this.state_hits[player].flat().map(val => val === 0 ? 1 : 0);
+        return this.state_hits[player].flat().map(val => val === 0 ? 1 : 0)
     }
 
     policy(policy, state) {
-        let validMoves = state[this.hitIndex(1)].flat().map(val => val === 0 ? 1 : 0);
-        policy = policy.map((val, idx) => val * validMoves[idx]);
-        let sum = policy.reduce((a, b) => a + b, 0);
-        policy = policy.map(val => val / sum);
-        return policy;
+        let validMoves = state[this.hitIndex(1)].flat().map(val => val === 0 ? 1 : 0)
+        policy = policy.map((val, idx) => val * validMoves[idx])
+        let sum = policy.reduce((a, b) => a + b, 0)
+        policy = policy.map(val => val / sum)
+        return policy
     }
 
     checkWin(player) {
-        let stateHit = this.state_hits[player];
-        let stateShip = this.state_ships[player ^ 1];
-        let hitSum = stateShip.flat().reduce((sum, val, idx) => sum + (val * stateHit.flat()[idx]), 0);
-        return hitSum === this.num_shipparts;
+        let stateHit = this.state_hits[player]
+        let stateShip = this.state_ships[player ^ 1]
+        let hitSum = stateShip.flat().reduce((sum, val, idx) => sum + (val * stateHit.flat()[idx]), 0)
+        return hitSum === this.num_shipparts
     }
 
     terminated() {
         if (this.checkWin(this.user)) {
-            return [1, true];
+            return [1, true]
         }
         if (this.checkWin(this.alphazero)) {
-            return [1, true];
+            return [1, true]
         }
-        return [0, false];
+        return [0, false]
     }
 
     changePerspective(state, player) {
-        let returnState = Array.from({ length: 6 }, () => Array.from({ length: this.columns }, () => Array(this.rows).fill(0)));
+        let returnState = Array.from({ length: 6 }, () => Array.from({ length: this.columns }, () => Array(this.rows).fill(0)))
         if (player === -1) {
-            let stateCopy = state.slice(0, 3);
-            returnState = state.slice(3, 6).concat(stateCopy);
-            return returnState;
+            let stateCopy = state.slice(0, 3)
+            returnState = state.slice(3, 6).concat(stateCopy)
+            return returnState
         } else {
-            return state;
+            return state
         }
     }
 
     getEncodedState() {
         // state_ships user, state_hits user, state_ships alphazero, state_hits alphazero, state_experiance user, state_experiance alphazero
-        let encodedState = [];
-        encodedState = encodedState.concat(...this.state_ships[this.user].flat());
-        encodedState = encodedState.concat(...this.state_hits[this.user].flat());
-        encodedState = encodedState.concat(...this.state_ships[this.alphazero].flat());
-        encodedState = encodedState.concat(...this.state_hits[this.alphazero].flat());
-        return new Float32Array(encodedState.map(val => val === 255 ? 1.0 : 0.0));
+        let encodedState = []
+        encodedState = encodedState.concat(...this.state_ships[this.user].flat())
+        encodedState = encodedState.concat(...this.state_hits[this.user].flat())
+        encodedState = encodedState.concat(...this.state_ships[this.alphazero].flat())
+        encodedState = encodedState.concat(...this.state_hits[this.alphazero].flat())
+        return new Float32Array(encodedState.map(val => val === 255 ? 1.0 : 0.0))
     }
 
-    placeShips(state, player) {
+    placeShips(state_ships, player) {
         for (let ship of this.ships_possible[Number(player > 0)]) {
-            let randomDirection = Math.floor(Math.random() * 2);
+            let randomDirection = Math.floor(Math.random() * 2)
 
-            let positions = [];
+            let positions = []
 
             for (let i = 0; i < this.size - ship + 1; i++) {
-                let prefix = new Array(i).fill(0);
-                let body = new Array(ship).fill(1);
-                let postfix = new Array(this.size - ship - i).fill(0);
-                let shipPossible = prefix.concat(body, postfix);
+                let prefix = new Array(i).fill(0)
+                let body = new Array(ship).fill(1)
+                let postfix = new Array(this.size - ship - i).fill(0)
+                let shipPossible = prefix.concat(body, postfix)
 
-                let shipPossibleSqueezed;
+                let shipPossibleSqueezed
                 if (randomDirection) {
-                    shipPossibleSqueezed = this.state_ships[player] * shipPossible;
+                    shipPossibleSqueezed = state_ships[player] * shipPossible
 
-                    let shipMap = this.state_ships[player];
-                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx]);
+                    let shipMap = state_ships[player]
+                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx])
                 } else {
-                    let transposedShipMap = this.transpose(this.state_ships[player]);
-                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx]);
+                    let transposedShipMap = this.transpose(state_ships[player])
+                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx])
                 }
-                positions = positions.concat(shipPossibleSqueezed);
+                positions = positions.concat(shipPossibleSqueezed)
             }
 
-            positions = this.reshape(positions, this.size - ship + 1, this.size);
-            let possiblePositions = this.where(positions, 1);
+            positions = this.reshape(positions, this.size - ship + 1, this.size)
+            let possiblePositions = this.where(positions, 1)
 
-            let lengthPossiblePositions = possiblePositions[0].length;
+            let lengthPossiblePositions = possiblePositions[0].length
 
-            let randomShipPosition = Math.floor(Math.random() * lengthPossiblePositions);
+            let randomShipPosition = Math.floor(Math.random() * lengthPossiblePositions)
 
-            let x = possiblePositions[0][randomShipPosition];
-            let y = possiblePositions[1][randomShipPosition];
+            let x = possiblePositions[0][randomShipPosition]
+            let y = possiblePositions[1][randomShipPosition]
 
-            let p1, p2;
+            let p1, p2
             if (randomDirection) {
-                p1 = [x, y];
-                p2 = [x + ship - 1, y];
+                p1 = [x, y]
+                p2 = [x + ship - 1, y]
             } else {
-                p1 = [y, x];
-                p2 = [y, x + ship - 1];
+                p1 = [y, x]
+                p2 = [y, x + ship - 1]
             }
 
-            let shipArray = this.pointsBetween(p1, p2);
+            let shipArray = this.pointsBetween(p1, p2)
 
-            this.ships[Number(player > 0)].push(shipArray);
+            this.ships[Number(player > 0)].push(shipArray)
 
             for (let point of shipArray) {
-                this.state_ships[player][point[0]][point[1]] = 255;
+                state_ships[player][point[0]][point[1]] = 255
             }
         }
-        console.log(JSON.stringify(this.state_ships));
+        console.log(JSON.stringify(state_ships))
     }
 
     transpose(matrix) {
-        return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]));
+        return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]))
     }
 
     reshape(array, rows, cols) {
-        let reshaped = [];
+        let reshaped = []
         for (let i = 0; i < rows; i++) {
-            reshaped.push(array.slice(i * cols, (i + 1) * cols));
+            reshaped.push(array.slice(i * cols, (i + 1) * cols))
         }
         return reshaped;
     }
 
     where(array, value) {
-        let indices = [[], []];
+        let indices = [[], []]
         for (let i = 0; i < array.length; i++) {
             for (let j = 0; j < array[i].length; j++) {
                 if (array[i][j] === value) {
-                    indices[0].push(i);
-                    indices[1].push(j);
+                    indices[0].push(i)
+                    indices[1].push(j)
                 }
             }
         }
-        return indices;
+        return indices
     }
 }
 
 document.addEventListener("DOMContentLoaded", function() {
-    const nj = window.nj; 
+    const nj = window.nj
 
     let moves_player = 0
     let moves_ai = 0
@@ -252,7 +252,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let state = new Float32Array(1 * 6 * 9 * 9)
 
     var game = new Game(9)
-    game.restart(1)
+    game.restart(this.state_ships, 1)
 
     function stepAlphazero(state) {
         // generate model input

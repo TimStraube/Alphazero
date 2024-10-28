@@ -3,9 +3,6 @@ import random
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from Alphazero.gameserver_django.gameserver import Gameserver
-
-gameserver = Gameserver()
 
 def menu(request):
     return render(request, 'menu.html', {}, status=200)
