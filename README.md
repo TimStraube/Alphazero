@@ -16,12 +16,6 @@ The most capable agent achives victory in about 29 moves in the mean on a 9x9 ba
 
 ## Getting started
 
-Training
-```
-python3 alphazero.py
-```
+Start training with ```python3 alphazero.py```.
 
-Playing against alphazero in the browser
-```
-python3 gameserver.py
-```
+Run ```python3 manage.py runserver``` to start the django server locally.
