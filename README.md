@@ -12,7 +12,7 @@ Hits on the others shipmap are being stored on the respective hitmaps.
 ## Alphazero
 
 Alphazero is a model-based deep reinforcement learning algorithm.<br/>
-The most capable agent achives victory in about 29 moves in the mean on a 9x9 battleship game while playing against a human which needs around 42 moves in the mean.
+The most capable agent achives victory in about 29 moves in the mean on a 9x9 battleship game with ```ships = [5, 4, 3, 2]``` while playing against a human which needs around 42 moves in the mean. 
 
 ## Getting started
 
