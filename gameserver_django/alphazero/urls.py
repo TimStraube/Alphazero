@@ -1,5 +1,5 @@
 """
-URL configuration for mysite project.
+URL configuration for alphazero project.
 
 The `urlpatterns` list routes URLs to views. For more information please see:
     https://docs.djangoproject.com/en/5.1/topics/http/urls/
@@ -16,10 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
-from webgameserver.views import custom_404
+from game.views import custom_404
 
 urlpatterns = [
-    path('', include("webgameserver.urls")),
+    path('', include("game.urls")),
     path('admin/', admin.site.urls),
 ]
 
