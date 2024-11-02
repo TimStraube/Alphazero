@@ -59,7 +59,6 @@ class Game {
                 `Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`
             )
         }
-        
         this.state_ships = Array.from(
             { length: 2 }, 
             () => Array.from(
@@ -82,26 +81,32 @@ class Game {
             )
         )
         this.ships = [[], []]
-        this.placeShips(this.player)
-        this.placeShips(this.player ^ 1)
+        this.placeShips()
+        this.player = this.player ^ 1
+        this.placeShips()
     }
 
-    step(action, player) {
+    togglePlayer() {
+        this.player = this.player ^ 1
+    }
+
+    step(action) {
         let north = Math.floor(action / this.size)
         let east = action % this.size
 
-        let hit = this.state_hits[player][north][east]
-        let ship = this.state_ships[player][north][east]
+        let hit = this.state_hits[this.player][north][east]
+        let ship = this.state_ships[this.player][north][east]
 
         this.repeat = false
 
         if (hit === 0 && ship === 0) {
             // hit water
-            this.state_hits[player][north][east] = 255
+            this.state_hits[this.player][north][east] = 255
+            this.togglePlayer()
         } else if (hit === 0 && ship === 255) {
             // hit ship
-            this.state_hits[player][north][east] = 255
-            this.state_experiance[player][north][east] = 255
+            this.state_hits[this.player][north][east] = 255
+            this.state_experiance[this.player][north][east] = 255
             this.repeat = true
         } else {
             // already hit
@@ -277,10 +282,10 @@ document.addEventListener("DOMContentLoaded", function() {
     let verticalPadding = 2
     let strokeWidth = 2
     let fill_opacity = 0.1
-    let state = new Float32Array(1 * 6 * 9 * 9)
 
     var game = new Game(9)
-    game.restart(game.state_ships, 1)
+    game.togglePlayer()
+    game.restart()
 
     function stepAlphazero(state) {
         // generate model input
@@ -404,7 +409,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     game.step(row * size + column, game.user)
                     updateRightBoard()
                     // console.log(row, column)
-                    encoded_state = game.getEncodedState(state)
+                    encoded_state = game.getEncodedState()
                     stepAlphazero(encoded_state)
                 }
 
@@ -481,7 +486,7 @@ document.addEventListener("DOMContentLoaded", function() {
                     game.step(row * size + column, game.user)
                     updateRightBoard()
                     // console.log(row, column)
-                    encoded_state = game.getEncodedState(state)
+                    encoded_state = game.getEncodedState()
                     stepAlphazero(encoded_state)
                 }
                 text.setAttribute(
