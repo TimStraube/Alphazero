@@ -6,6 +6,30 @@ class Game {
         this.moves = 0
         this.user = 0
         this.alphazero = 1
+        this.player = 0
+        this.ships_possible = [[5, 4, 3, 2], [5, 4, 3, 2]]
+
+        this.state_ships = Array.from(
+            { length: 2 }, 
+            () => Array.from(
+            { length: this.size }, 
+            () => Array(this.size).fill(0)
+            )
+        )
+        this.state_hits = Array.from(
+            { length: 2 }, 
+            () => Array.from(
+            { length: this.size }, 
+            () => Array(this.size).fill(0)
+            )
+        )
+        this.state_experiance = Array.from(
+            { length: 2 }, 
+            () => Array.from(
+            { length: this.size }, 
+            () => Array(this.size).fill(0)
+            )
+        )
         this.onnxSession = new onnx.InferenceSession()
         this.loadModel()
     }
@@ -19,23 +43,21 @@ class Game {
         });
     }
 
-    restart(state_ships, player) {
+    restart() {
         // player 0 or 1
         this.repeat = false
-        this.player = player
 
-        this.ships_possible = [[5, 4, 3, 2], [5, 4, 3, 2]]
-        for (let ships of this.ships_possible) {
-            for (let ship of ships) {
-                if (ship > this.size) {
-                    throw new Error(`Ship length ${ship} is larger than the board size ${this.size}`)
-                }
+        for (let ship of this.ships_possible[this.player]) {
+            if (ship > this.size) {
+                throw new Error(`Ship length ${ship} is larger than the board size ${this.size}`)
             }
         }
 
         this.num_shipparts = this.ships_possible[0].reduce((a, b) => a + b, 0)
         if (this.num_shipparts >= this.size * this.size) {
-            throw new Error(`Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`)
+            throw new Error(
+                `Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`
+            )
         }
         
         this.state_ships = Array.from(
@@ -60,8 +82,8 @@ class Game {
             )
         )
         this.ships = [[], []]
-        this.placeShips(state_ships, this.player)
-        this.placeShips(state_ships, this.player ^ 1)
+        this.placeShips(this.player)
+        this.placeShips(this.player ^ 1)
     }
 
     step(action, player) {
@@ -100,21 +122,21 @@ class Game {
         return points
     }
 
-    getValidMoves(state, player) {
-        return this.state_hits[player].flat().map(val => val === 0 ? 1 : 0)
+    getValidMoves() {
+        return this.state_hits[this.player].flat().map(val => val === 0 ? 1 : 0)
     }
 
-    policy(policy, state) {
-        let validMoves = state[this.hitIndex(1)].flat().map(val => val === 0 ? 1 : 0)
+    policy(policy) {
+        let validMoves = this.state_hits[player].flat().map(val => val === 0 ? 1 : 0)
         policy = policy.map((val, idx) => val * validMoves[idx])
         let sum = policy.reduce((a, b) => a + b, 0)
         policy = policy.map(val => val / sum)
         return policy
     }
 
-    checkWin(player) {
-        let stateHit = this.state_hits[player]
-        let stateShip = this.state_ships[player ^ 1]
+    checkWin() {
+        let stateHit = this.state_hits[this.player]
+        let stateShip = this.state_ships[this.player ^ 1]
         let hitSum = stateShip.flat().reduce((sum, val, idx) => sum + (val * stateHit.flat()[idx]), 0)
         return hitSum === this.num_shipparts
     }
@@ -129,10 +151,16 @@ class Game {
         return [0, false]
     }
 
-    changePerspective(state, player) {
-        let returnState = Array.from({ length: 6 }, () => Array.from({ length: this.columns }, () => Array(this.rows).fill(0)))
-        if (player === -1) {
-            let stateCopy = state.slice(0, 3)
+    changePerspective() {
+        let returnState = Array.from(
+            { length: 6 }, 
+            () => Array.from(
+                { length: this.columns }, 
+                () => Array(this.rows).fill(0)
+            )
+        )
+        if (this.player === -1) {
+            let stateCopy = this.state.slice(0, 3)
             returnState = state.slice(3, 6).concat(stateCopy)
             return returnState
         } else {
@@ -150,8 +178,8 @@ class Game {
         return new Float32Array(encodedState.map(val => val === 255 ? 1.0 : 0.0))
     }
 
-    placeShips(state_ships, player) {
-        for (let ship of this.ships_possible[Number(player > 0)]) {
+    placeShips() {
+        for (let ship of this.ships_possible[this.player]) {
             let randomDirection = Math.floor(Math.random() * 2)
 
             let positions = []
@@ -164,12 +192,12 @@ class Game {
 
                 let shipPossibleSqueezed
                 if (randomDirection) {
-                    shipPossibleSqueezed = state_ships[player] * shipPossible
+                    shipPossibleSqueezed = this.state_ships[this.player] * shipPossible
 
-                    let shipMap = state_ships[player]
+                    let shipMap = this.state_ships[this.player]
                     shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx])
                 } else {
-                    let transposedShipMap = this.transpose(state_ships[player])
+                    let transposedShipMap = this.transpose(this.state_ships[this.player])
                     shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx])
                 }
                 positions = positions.concat(shipPossibleSqueezed)
@@ -196,13 +224,13 @@ class Game {
 
             let shipArray = this.pointsBetween(p1, p2)
 
-            this.ships[Number(player > 0)].push(shipArray)
+            this.ships[this.player].push(shipArray)
 
             for (let point of shipArray) {
                 state_ships[player][point[0]][point[1]] = 255
             }
         }
-        console.log(JSON.stringify(state_ships))
+        console.log(JSON.stringify(this.state_ships))
     }
 
     transpose(matrix) {
@@ -252,7 +280,7 @@ document.addEventListener("DOMContentLoaded", function() {
     let state = new Float32Array(1 * 6 * 9 * 9)
 
     var game = new Game(9)
-    game.restart(this.state_ships, 1)
+    game.restart(game.state_ships, 1)
 
     function stepAlphazero(state) {
         // generate model input
