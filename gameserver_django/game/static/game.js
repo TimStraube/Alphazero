@@ -7,27 +7,32 @@ class Game {
         this.user = 0
         this.alphazero = 1
         this.player = 0
-        this.ships_possible = [[5, 4, 3, 2], [5, 4, 3, 2]]
+        this.shipsPossible = [[5, 4, 3, 2], [5, 4, 3, 2]]
+        // 0 ship placement, 1 battle
+        this.phase = 0
+        this.north_tminus1 = 0
+        this.east_tminus1 = 0
+        this.userPlacedBow = false
 
         this.state_ships = Array.from(
             { length: 2 }, 
             () => Array.from(
-            { length: this.size }, 
-            () => Array(this.size).fill(0)
+                { length: this.size }, 
+                () => Array(this.size).fill(0)
             )
         )
         this.state_hits = Array.from(
             { length: 2 }, 
             () => Array.from(
-            { length: this.size }, 
-            () => Array(this.size).fill(0)
+                { length: this.size }, 
+                () => Array(this.size).fill(0)
             )
         )
         this.state_experiance = Array.from(
             { length: 2 }, 
             () => Array.from(
-            { length: this.size }, 
-            () => Array(this.size).fill(0)
+                { length: this.size }, 
+                () => Array(this.size).fill(0)
             )
         )
         this.onnxSession = new onnx.InferenceSession()
@@ -47,13 +52,13 @@ class Game {
         // player 0 or 1
         this.repeat = false
 
-        for (let ship of this.ships_possible[this.player]) {
+        for (let ship of this.shipsPossible[this.player]) {
             if (ship > this.size) {
                 throw new Error(`Ship length ${ship} is larger than the board size ${this.size}`)
             }
         }
 
-        this.num_shipparts = this.ships_possible[0].reduce((a, b) => a + b, 0)
+        this.num_shipparts = this.shipsPossible[0].reduce((a, b) => a + b, 0)
         if (this.num_shipparts >= this.size * this.size) {
             throw new Error(
                 `Number of ship parts ${this.num_shipparts} is not smaller than the board size squared ${this.size * this.size}`
@@ -81,9 +86,9 @@ class Game {
             )
         )
         this.ships = [[], []]
-        this.placeShips()
-        this.player = this.player ^ 1
-        this.placeShips()
+        // this.placeShips()
+        // this.player = this.player ^ 1
+        // this.placeShips()
     }
 
     togglePlayer() {
@@ -91,40 +96,70 @@ class Game {
     }
 
     step(action) {
-        let north = Math.floor(action / this.size)
-        let east = action % this.size
+        let north = action % this.size
+        let east = Math.floor(action / this.size)
 
-        let hit = this.state_hits[this.player][north][east]
-        let ship = this.state_ships[this.player][north][east]
+        if (this.phase === 0) {
 
-        this.repeat = false
+            console.log(north, east)
 
-        if (hit === 0 && ship === 0) {
-            // hit water
-            this.state_hits[this.player][north][east] = 255
-            this.togglePlayer()
-        } else if (hit === 0 && ship === 255) {
-            // hit ship
-            this.state_hits[this.player][north][east] = 255
-            this.state_experiance[this.player][north][east] = 255
-            this.repeat = true
+            if (this.userPlacedBow) {
+                // Check if ships can be placed inbetween north_tminus1 and north and east_tminus1 and east
+                let points = this.pointsBetween([this.east_tminus1, this.north_tminus1], [east, north])
+                for (let point of points) {
+                    if (this.state_ships[this.player][point[0]][point[1]] === 255) {
+                        return
+                    }
+                }
+
+                for (let point of points) {
+                    console.log(point)
+                    this.state_ships[this.player][point[0]][point[1]] = 255
+                }
+            }
+            this.north_tminus1 = north 
+            this.east_tminus1 = east
+
+            this.userPlacedBow = !this.userPlacedBow
         } else {
-            // already hit
+            let hit = this.state_hits[this.player][east][north]
+            let ship = this.state_ships[this.player][east][north]
+
+            this.repeat = false
+
+            if (hit === 0 && ship === 0) {
+                // hit water
+                this.state_hits[this.player][east][north] = 255
+                this.togglePlayer()
+            } else if (hit === 0 && ship === 255) {
+                // hit ship
+                this.state_hits[this.player][east][north] = 255
+                this.state_experiance[this.player][east][north] = 255
+                this.repeat = true
+            } else {
+                // already hit
+            }
         }
     }
 
     pointsBetween(p1, p2) {
-        let points = []
-
+        let points = [];
+    
         if (p1[0] === p2[0]) {
-            let yValues = Array.from({ length: p2[1] - p1[1] + 1 }, (_, i) => i + p1[1])
-            points = yValues.map(y => [p1[0], y])
+            // Vertical line
+            let [start, end] = p1[1] < p2[1] ? [p1[1], p2[1]] : [p2[1], p1[1]];
+            for (let y = start; y <= end; y++) {
+                points.push([p1[0], y]);
+            }
         } else if (p1[1] === p2[1]) {
-            let xValues = Array.from({ length: p2[0] - p1[0] + 1 }, (_, i) => i + p1[0])
-            points = xValues.map(x => [x, p1[1]])
+            // Horizontal line
+            let [start, end] = p1[0] < p2[0] ? [p1[0], p2[0]] : [p2[0], p1[0]];
+            for (let x = start; x <= end; x++) {
+                points.push([x, p1[1]]);
+            }
         }
-
-        return points
+    
+        return points;
     }
 
     getValidMoves() {
@@ -182,61 +217,92 @@ class Game {
         encodedState = encodedState.concat(...this.state_hits[this.alphazero].flat())
         return new Float32Array(encodedState.map(val => val === 255 ? 1.0 : 0.0))
     }
-
+    
     placeShips() {
-        for (let ship of this.ships_possible[this.player]) {
-            let randomDirection = Math.floor(Math.random() * 2)
-
-            let positions = []
-
-            for (let i = 0; i < this.size - ship + 1; i++) {
-                let prefix = new Array(i).fill(0)
-                let body = new Array(ship).fill(1)
-                let postfix = new Array(this.size - ship - i).fill(0)
-                let shipPossible = prefix.concat(body, postfix)
-
-                let shipPossibleSqueezed
-                if (randomDirection) {
-                    shipPossibleSqueezed = this.state_ships[this.player] * shipPossible
-
-                    let shipMap = this.state_ships[this.player]
-                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx])
-                } else {
-                    let transposedShipMap = this.transpose(this.state_ships[this.player])
-                    shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx])
+        for (let ship of this.shipsPossible[0]) {
+            let placed = false;
+            while (!placed) {
+                let direction = Math.random() < 0.5; // true for horizontal, false for vertical
+                let startX = Math.floor(Math.random() * (this.size - (direction ? ship : 1)));
+                let startY = Math.floor(Math.random() * (this.size - (direction ? 1 : ship)));
+    
+                // Check if the ship can be placed
+                let canPlace = true;
+                for (let i = 0; i < ship; i++) {
+                    let x = startX + (direction ? i : 0);
+                    let y = startY + (direction ? 0 : i);
+                    if (this.state_ships[this.user][x][y] !== 0) {
+                        canPlace = false;
+                        break;
+                    }
                 }
-                positions = positions.concat(shipPossibleSqueezed)
-            }
-
-            positions = this.reshape(positions, this.size - ship + 1, this.size)
-            let possiblePositions = this.where(positions, 1)
-
-            let lengthPossiblePositions = possiblePositions[0].length
-
-            let randomShipPosition = Math.floor(Math.random() * lengthPossiblePositions)
-
-            let x = possiblePositions[0][randomShipPosition]
-            let y = possiblePositions[1][randomShipPosition]
-
-            let p1, p2
-            if (randomDirection) {
-                p1 = [x, y]
-                p2 = [x + ship - 1, y]
-            } else {
-                p1 = [y, x]
-                p2 = [y, x + ship - 1]
-            }
-
-            let shipArray = this.pointsBetween(p1, p2)
-
-            this.ships[this.player].push(shipArray)
-
-            for (let point of shipArray) {
-                state_ships[player][point[0]][point[1]] = 255
+    
+                // Place the ship if possible
+                if (canPlace) {
+                    for (let i = 0; i < ship; i++) {
+                        let x = startX + (direction ? i : 0);
+                        let y = startY + (direction ? 0 : i);
+                        this.state_ships[this.user][x][y] = 255;
+                    }
+                    placed = true;
+                }
             }
         }
-        console.log(JSON.stringify(this.state_ships))
     }
+
+    // placeShips() {
+    //     for (let ship of this.shipsPossible[this.player]) {
+    //         let randomDirection = Math.floor(Math.random() * 2)
+
+    //         let positions = []
+
+    //         for (let i = 0; i < this.size - ship + 1; i++) {
+    //             let prefix = new Array(i).fill(0)
+    //             let body = new Array(ship).fill(1)
+    //             let postfix = new Array(this.size - ship - i).fill(0)
+    //             let shipPossible = prefix.concat(body, postfix)
+
+    //             let shipPossibleSqueezed
+    //             if (randomDirection) {
+    //                 shipPossibleSqueezed = this.state_ships[this.player] * shipPossible
+
+    //                 let shipMap = this.state_ships[this.player]
+    //                 shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx])
+    //             } else {
+    //                 let transposedShipMap = this.transpose(this.state_ships[this.player])
+    //                 shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx])
+    //             }
+    //             positions = positions.concat(shipPossibleSqueezed)
+    //         }
+
+    //         positions = this.reshape(positions, this.size - ship + 1, this.size)
+    //         let possiblePositions = this.where(positions, 1)
+
+    //         let lengthPossiblePositions = possiblePositions[0].length
+
+    //         let randomShipPosition = Math.floor(Math.random() * lengthPossiblePositions)
+
+    //         let x = possiblePositions[0][randomShipPosition]
+    //         let y = possiblePositions[1][randomShipPosition]
+
+    //         let p1, p2
+    //         if (randomDirection) {
+    //             p1 = [x, y]
+    //             p2 = [x + ship - 1, y]
+    //         } else {
+    //             p1 = [y, x]
+    //             p2 = [y, x + ship - 1]
+    //         }
+
+    //         let shipArray = this.pointsBetween(p1, p2)
+
+    //         this.ships[this.player].push(shipArray)
+
+    //         for (let point of shipArray) {
+    //             state_ships[player][point[0]][point[1]] = 255
+    //         }
+    //     }
+    // }
 
     transpose(matrix) {
         return matrix[0].map((_, colIndex) => matrix.map(row => row[colIndex]))
@@ -284,8 +350,13 @@ document.addEventListener("DOMContentLoaded", function() {
     let fill_opacity = 0.1
 
     var game = new Game(9)
-    game.togglePlayer()
+    // Restart game to a state in which no ships are placed
     game.restart()
+    // Draw the empty game boards
+    plotBoards()
+
+    // updateLeftBoard()
+    // updateRightBoard()
 
     function stepAlphazero(state) {
         // generate model input
@@ -315,7 +386,8 @@ document.addEventListener("DOMContentLoaded", function() {
         for (let row = 0; row < size; row++) {
             for (let column = 0; column < size; column++) {
                 // field has been hit
-                if (game.state_experiance[game.alphazero][row][column] == 255) {
+                console.log(JSON.stringify(game.state_ships))
+                if (game.state_experiance[game.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 // ship on field which has no been hit
@@ -346,7 +418,7 @@ document.addEventListener("DOMContentLoaded", function() {
     {
         for (let row = 0; row < size; row++) {
             for (let column = 0; column < size; column++) {
-                if (game.state_ships[game.user][row][column] == 255) {
+                if (game.state_experiance[game.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 } else if (game.state_hits[game.user][row][column] == 255) {
@@ -370,7 +442,7 @@ document.addEventListener("DOMContentLoaded", function() {
         }
     }
 
-    function zeichneBoards() 
+    function plotBoards() 
     {
         rectWidth = 5
         rectHeight = 5
@@ -405,12 +477,21 @@ document.addEventListener("DOMContentLoaded", function() {
 
                 rect.onclick = function ()
                 {
-                    var svgSource = text.textContent
-                    game.step(row * size + column, game.user)
-                    updateRightBoard()
-                    // console.log(row, column)
-                    encoded_state = game.getEncodedState()
-                    stepAlphazero(encoded_state)
+                    if (game.phase === 0) {
+                        game.step(row * size + column, game.user)
+                        updateLeftBoard()
+                        updateRightBoard()
+                    } else {
+                        var svgSource = text.textContent
+                        game.step(row * size + column, game.user)
+                        updateLeftBoard()
+                        updateRightBoard()
+                        // console.log(row, column)
+                        encoded_state = game.getEncodedState()
+                        stepAlphazero(encoded_state)
+                        updateLeftBoard()
+                        updateRightBoard()
+                    }
                 }
 
                 text.setAttribute(
@@ -482,12 +563,21 @@ document.addEventListener("DOMContentLoaded", function() {
                 )
                 rect.onclick = function () 
                 {
-                    var svgSource = text.textContent
-                    game.step(row * size + column, game.user)
-                    updateRightBoard()
-                    // console.log(row, column)
-                    encoded_state = game.getEncodedState()
-                    stepAlphazero(encoded_state)
+                    if (game.phase === 0) {
+                        game.step(row * size + column, game.user)
+                        updateLeftBoard()
+                        updateRightBoard()
+                    } else {
+                        var svgSource = text.textContent
+                        game.step(row * size + column, game.user)
+                        updateLeftBoard()
+                        updateRightBoard()
+                        // console.log(row, column)
+                        encoded_state = game.getEncodedState()
+                        stepAlphazero(encoded_state)
+                        updateLeftBoard()
+                        updateRightBoard()
+                    }
                 }
                 text.setAttribute(
                     "x", 
@@ -553,6 +643,4 @@ document.addEventListener("DOMContentLoaded", function() {
         grid.setAttribute("width", gameFieldWidth);
         grid.setAttribute("height", gameFieldHeight);
     }
-
-    zeichneBoards();
 })
