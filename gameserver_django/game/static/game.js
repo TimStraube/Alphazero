@@ -13,6 +13,7 @@ class Game {
         this.north_tminus1 = 0
         this.east_tminus1 = 0
         this.userPlacedBow = false
+        this.userManuelShipPlacement = true
 
         this.state_ships = Array.from(
             { length: 2 }, 
@@ -95,6 +96,14 @@ class Game {
         this.player = this.player ^ 1
     }
 
+    setAlphazeroPlayer() {
+        this.player = this.alphazero
+    }
+
+    setUserPlayer() {
+        this.player = this.user
+    }
+
     step(action) {
         let north = action % this.size
         let east = Math.floor(action / this.size)
@@ -108,13 +117,27 @@ class Game {
                 let points = this.pointsBetween([this.east_tminus1, this.north_tminus1], [east, north])
                 for (let point of points) {
                     if (this.state_ships[this.player][point[0]][point[1]] === 255) {
+                        this.userPlacedBow = false
                         return
                     }
                 }
 
+                let lengthShip = points.length
+                if (!this.shipsPossible[this.user].includes(lengthShip)) {
+                    this.userPlacedBow = false;
+                    return;
+                }
+
                 for (let point of points) {
-                    console.log(point)
                     this.state_ships[this.player][point[0]][point[1]] = 255
+                }
+
+                this.shipsPossible[this.user] = this.shipsPossible[this.user].filter(ship => ship !== lengthShip);
+                if (this.shipsPossible[this.user].length === 0) {
+                    this.setAlphazeroPlayer()
+                    this.placeShips();
+                    this.phase = 1;
+                    console.log("Phase changed to battle phase.");
                 }
             }
             this.north_tminus1 = north 
@@ -219,6 +242,7 @@ class Game {
     }
     
     placeShips() {
+        console.log(this.player === this.alphazero)
         for (let ship of this.shipsPossible[0]) {
             let placed = false;
             while (!placed) {
