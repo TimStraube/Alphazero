@@ -1,6 +1,6 @@
 # Alphazero implementation for the game battleship
 
-This program solved the game of battleship using alphazero.
+This program solved the game of battleship using alphazero and provides a web interface for playing.
 
 ## Battleship
 
@@ -16,6 +16,6 @@ The most capable agent achives victory in about 29 moves in the mean on a 9x9 ba
 
 ## Getting started
 
-Start training with ```python3 alphazero.py```.
+Start a training process with ```python3 alphazero.py```.
 
 To play against a model first change into the django server directory ```cd gameserver_django```. Then run ```python3 manage.py runserver``` to start the django server locally.
