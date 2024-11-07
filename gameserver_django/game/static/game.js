@@ -176,20 +176,20 @@ class Game {
                 this.state_hits[this.player][east][north] = 255
                 this.state_experiance[this.player][east][north] = 255
                 this.repeat = true
-                encoded_state = this.getEncodedState()
-                stepAlphazero(encoded_state)
+                let encoded_state = this.getEncodedState()
+                this.stepAlphazero(encoded_state)
             } else {
                 // already hit
                 console.log(
                     "Field north " + north + " east " + east + " has already been hit."
                 )
                 if (this.player === this.alphazero) {
-                    encoded_state = this.getEncodedState()
-                    stepAlphazero(encoded_state)
+                    let encoded_state = this.getEncodedState()
+                    this.stepAlphazero(encoded_state)
                 }
             }
-            updateLeftBoard()
-            updateRightBoard()
+            this.updateLeftBoard()
+            this.updateRightBoard()
         }
     }
 
@@ -421,7 +421,7 @@ class Game {
             [1, 4, 9, 9]
         )
         // execute the model
-        game.onnxSession.run([inputTensor]).then(
+        this.onnxSession.run([inputTensor]).then(
             (output) => {
                 // log the output object
                 // console.log("Model output:", output);
@@ -435,8 +435,8 @@ class Game {
                         )
                     )
                     // console.log(`Action: ${action}`);
-                    game.step(action, game.alphazero)
-                    updateLeftBoard() 
+                    this.step(action)
+                    this.updateLeftBoard() 
                 } else {
                     console.error("Model did not produce any output.");
                 }
@@ -450,19 +450,21 @@ class Game {
     }
 
     updateLeftBoard() {
-        for (let row = 0; row < size; row++) {
-            for (let column = 0; column < size; column++) {
+        let dyn_fill_opacity = 0.0
+        let color = "blue"
+        for (let row = 0; row < this.size; row++) {
+            for (let column = 0; column < this.size; column++) {
                 // field has been hit
-                console.log(JSON.stringify(game.state_ships))
-                if (game.state_experiance[game.user][row][column] == 255) {
+                console.log(JSON.stringify(this.state_ships))
+                if (this.state_experiance[this.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 // ship on field which has no been hit
-                } else if (game.state_ships[game.user][row][column] == 255) {
+                } else if (this.state_ships[this.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "grey"
                 // water
-                } else if (game.state_hits[game.alphazero][row][column] == 255) {
+                } else if (this.state_hits[this.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "blue"
                 } else {
@@ -475,19 +477,21 @@ class Game {
                 )
                 rect_now.setAttribute(
                     "style", 
-                    "fill: " + color + "; stroke: black; stroke-width: " + strokeWidth + "; fill-opacity:  " + dyn_fill_opacity + "; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
+                    "fill: " + color + "; stroke: black; stroke-width: " + this.strokeWidth + "; fill-opacity:  " + dyn_fill_opacity + "; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
                 ) 
             }
         }
     }
 
     updateRightBoard(state) {
-        for (let row = 0; row < size; row++) {
-            for (let column = 0; column < size; column++) {
-                if (game.state_experiance[game.alphazero][row][column] == 255) {
+        let dyn_fill_opacity = 0.0
+        let color = "blue"
+        for (let row = 0; row < this.size; row++) {
+            for (let column = 0; column < this.size; column++) {
+                if (this.state_experiance[this.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
-                } else if (game.state_hits[game.user][row][column] == 255) {
+                } else if (this.state_hits[this.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "blue"
                 } else {
@@ -502,7 +506,7 @@ class Game {
                 
                 rect_now.setAttribute(
                     "style", 
-                    "fill: " + color + "; stroke: black; stroke-width: " + strokeWidth + "; fill-opacity:  " + dyn_fill_opacity + "; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
+                    "fill: " + color + "; stroke: black; stroke-width: " + this.strokeWidth + "; fill-opacity:  " + dyn_fill_opacity + "; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
                 )
             }
         }
@@ -544,25 +548,22 @@ class Game {
                 {
                     if (this.phase === 0) {
                         this.step(
-                            row * this.size + column, 
-                            this.user
+                            row * this.size + column
                         )
                         this.updateLeftBoard()
                         this.updateRightBoard()
                     } else {
                         var svgSource = text.textContent
                         this.step(
-                            row * this.size + column, 
-                            this.user
+                            row * this.size + column
                         )
                         // console.log(row, column)
-                        encoded_state = this.getEncodedState()
+                        let encoded_state = this.getEncodedState()
                         this.stepAlphazero(encoded_state)
                         this.updateLeftBoard()
                         this.updateRightBoard()
                     }
-                }
-
+                }.bind(this)
                 text.setAttribute(
                     "x", 
                     rectX + 20 / this.size + "%"
@@ -637,26 +638,24 @@ class Game {
                 rect.onclick = function () {
                     if (this.phase === 0) {
                         this.step(
-                            row * this.size + column, 
-                            this.user
+                            row * this.size + column
                         )
                         this.updateLeftBoard()
                         this.updateRightBoard()
                     } else {
                         var svgSource = text.textContent
                         this.step(
-                            row * this.size + column, 
-                            this.user
+                            row * this.size + column
                         )
                         this.updateLeftBoard()
                         this.updateRightBoard()
                         // console.log(row, column)
-                        encoded_state = game.getEncodedState()
+                        let encoded_state = this.getEncodedState()
                         this.stepAlphazero(encoded_state)
                         this.updateLeftBoard()
                         this.updateRightBoard()
                     }
-                }
+                }.bind(this)
                 text.setAttribute(
                     "x", 
                     rectX + 20 / this.size + "%"
