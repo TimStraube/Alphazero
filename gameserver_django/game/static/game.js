@@ -122,7 +122,6 @@ class Game {
         let north = action % this.size
         let east = Math.floor(action / this.size)
         if (this.phase === 0) {
-            console.log(north, east)
             if (this.userPlacedBow) {
                 // Check if ships can be placed inbetween north_tminus1 and north and east_tminus1 and east
                 let points = this.pointsBetween(
@@ -160,37 +159,30 @@ class Game {
         } else {
             let hit = this.state_hits[this.player][east][north]
             let ship = this.state_ships[this.player][east][north]
-            this.repeat = false
+            console.log("Ship: " + ship)
+            console.log("Hit: " + hit)
+            console.log(
+                this.player + " hit water at field " + String.fromCharCode(east + 65) + (north + 1)
+            )
             if (hit === 0 && ship === 0) {
-                // hit water
-                console.log(
-                    this.player + " hit water at field north " + north + " east " + east
-                )
+                // If water has been hit the player switches.
                 this.state_hits[this.player][east][north] = 255
                 this.togglePlayer()
             } else if (hit === 0 && ship === 255) {
                 // hit ship
-                console.log(
-                    this.player + " hit ship at field north " + north + " east " + east
-                )
                 this.state_hits[this.player][east][north] = 255
                 this.state_experiance[this.player][east][north] = 255
-                this.repeat = true
-                let encoded_state = this.getEncodedState()
-                this.stepAlphazero(encoded_state)
-            } else {
-                // already hit
-                console.log(
-                    "Field north " + north + " east " + east + " has already been hit."
-                )
                 if (this.player === this.alphazero) {
-                    let encoded_state = this.getEncodedState()
-                    this.stepAlphazero(encoded_state)
+                    this.stepAlphazero()
+                } else {
+                    this.setUserPlayer()
                 }
+            } else {
+                // If the field has already been hit the current player can make another move. 
             }
-            this.updateLeftBoard()
-            this.updateRightBoard()
         }
+        this.updateLeftBoard()
+        this.updateRightBoard()
     }
 
     pointsBetween(p1, p2) {
@@ -412,41 +404,53 @@ class Game {
         }
         return indices
     }
-    
-    stepAlphazero(state) {
-        // generate model input
-        const inputTensor = new onnx.Tensor(
-            state, 
-            'float32', 
-            [1, 4, 9, 9]
+
+    stepAlphazero() {
+        const randomAction = Math.floor(
+            Math.random() * 81
         )
-        // execute the model
-        this.onnxSession.run([inputTensor]).then(
-            (output) => {
-                // log the output object
-                // console.log("Model output:", output);
-                // consume the output
-                const outputTensor = output.values().next().value;
-                if (outputTensor) {
-                    // console.log(`Model output tensor: ${outputTensor.data}.`);
-                    const action = outputTensor.data.indexOf(
-                        Math.max(
-                            ...outputTensor.data
-                        )
-                    )
-                    // console.log(`Action: ${action}`);
-                    this.step(action)
-                    this.updateLeftBoard() 
-                } else {
-                    console.error("Model did not produce any output.");
-                }
-            }
-        ).catch((error) => {
-            console.error(
-                "Error during model execution:", 
-                error
-            )
-        })
+        this.step(randomAction)
+        // this.step(action)
+
+        // this.setAlphazeroPlayer()
+        // // generate model input
+        // const inputTensor = new onnx.Tensor(
+        //     getEncodedState(), 
+        //     'float32', 
+        //     [1, 4, 9, 9]
+        // )
+        // // execute the model
+        // this.onnxSession.run([inputTensor]).then(
+        //     (output) => {
+        //         // log the output object
+        //         // console.log("Model output:", output);
+        //         // consume the output
+        //         const outputTensor = output.values().next().value;
+        //         if (outputTensor) {
+        //             // console.log(`Model output tensor: ${outputTensor.data}.`);
+        //             const action = outputTensor.data.indexOf(
+        //                 Math.max(
+        //                     ...outputTensor.data
+        //                 )
+        //             )
+        //             // console.log(`Action: ${action}`);
+        //             const randomAction = Math.floor(
+        //                 Math.random() * 81
+        //             )
+        //             this.step(randomAction)
+        //             // this.step(action)
+        //             this.updateLeftBoard() 
+        //             this.updateRightBoard()
+        //         } else {
+        //             console.error("Model did not produce any output.");
+        //         }
+        //     }
+        // ).catch((error) => {
+        //     console.error(
+        //         "Error during model execution:", 
+        //         error
+        //     )
+        // })
     }
 
     updateLeftBoard() {
@@ -455,8 +459,10 @@ class Game {
         for (let row = 0; row < this.size; row++) {
             for (let column = 0; column < this.size; column++) {
                 // field has been hit
-                console.log(JSON.stringify(this.state_ships))
-                if (this.state_experiance[this.user][row][column] == 255) {
+                console.log(
+                    JSON.stringify(this.state_ships)
+                )
+                if (this.state_experiance[this.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 // ship on field which has no been hit
@@ -464,7 +470,7 @@ class Game {
                     dyn_fill_opacity = 0.7
                     color = "grey"
                 // water
-                } else if (this.state_hits[this.alphazero][row][column] == 255) {
+                } else if (this.state_hits[this.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "blue"
                 } else {
@@ -488,7 +494,7 @@ class Game {
         let color = "blue"
         for (let row = 0; row < this.size; row++) {
             for (let column = 0; column < this.size; column++) {
-                if (this.state_experiance[this.alphazero][row][column] == 255) {
+                if (this.state_experiance[this.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 } else if (this.state_hits[this.user][row][column] == 255) {
@@ -503,7 +509,6 @@ class Game {
                     new String(column) + 
                     new String(this.size * this.size)
                 )
-                
                 rect_now.setAttribute(
                     "style", 
                     "fill: " + color + "; stroke: black; stroke-width: " + this.strokeWidth + "; fill-opacity:  " + dyn_fill_opacity + "; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
@@ -546,29 +551,14 @@ class Game {
 
                 rect.onclick = function ()
                 {
-                    if (this.phase === 0) {
-                        this.step(
-                            row * this.size + column
-                        )
-                        this.updateLeftBoard()
-                        this.updateRightBoard()
-                    } else {
-                        var svgSource = text.textContent
-                        this.step(
-                            row * this.size + column
-                        )
-                        // console.log(row, column)
-                        let encoded_state = this.getEncodedState()
-                        this.stepAlphazero(encoded_state)
-                        this.updateLeftBoard()
-                        this.updateRightBoard()
-                    }
+                    this.step(
+                        row * this.size + column
+                    )
                 }.bind(this)
                 text.setAttribute(
                     "x", 
                     rectX + 20 / this.size + "%"
                 )
-                console.log(rectY + 40 / this.size + "%")
                 text.setAttribute(
                     "y", 
                     rectY + 40 / this.size + "%"
@@ -636,25 +626,9 @@ class Game {
                     "prevent-select"
                 )
                 rect.onclick = function () {
-                    if (this.phase === 0) {
-                        this.step(
-                            row * this.size + column
-                        )
-                        this.updateLeftBoard()
-                        this.updateRightBoard()
-                    } else {
-                        var svgSource = text.textContent
-                        this.step(
-                            row * this.size + column
-                        )
-                        this.updateLeftBoard()
-                        this.updateRightBoard()
-                        // console.log(row, column)
-                        let encoded_state = this.getEncodedState()
-                        this.stepAlphazero(encoded_state)
-                        this.updateLeftBoard()
-                        this.updateRightBoard()
-                    }
+                    this.step(
+                        row * this.size + column
+                    )
                 }.bind(this)
                 text.setAttribute(
                     "x", 
@@ -664,9 +638,9 @@ class Game {
                     "y", 
                     rectY + 40 / this.size + "%"
                 )
-                text.setAttribute("font-size", "20");
-                text.setAttribute("fill", "black");
-                text.setAttribute("text-anchor", "middle");
+                text.setAttribute("font-size", "20")
+                text.setAttribute("fill", "black")
+                text.setAttribute("text-anchor", "middle")
                 text.setAttribute(
                     "dominant-baseline", 
                     "middle"
@@ -675,8 +649,8 @@ class Game {
                     String.fromCharCode(row + 65) + 
                     (column + 1)
                 )
-                rect.setAttribute("x", rectX + "%");
-                rect.setAttribute("y", rectY + "%");
+                rect.setAttribute("x", rectX + "%")
+                rect.setAttribute("y", rectY + "%")
                 rect.setAttribute(
                     "width", 40 / this.size + "%"
                 )
@@ -697,8 +671,8 @@ class Game {
             rectX += 40 / this.size
         }
 
-        let gameFieldWidth = 0;
-        let gameFieldHeight = 0;
+        let gameFieldWidth = 0
+        let gameFieldHeight = 0
 
         if (window.innerWidth > window.innerHeight) {
             gameFieldWidth = this.startX + this.size * (
@@ -727,7 +701,4 @@ document.addEventListener("DOMContentLoaded", function() {
     game.restart()
     // Draw the empty game boards
     game.plotBoards()
-
-    // updateLeftBoard()
-    // updateRightBoard()
 })
