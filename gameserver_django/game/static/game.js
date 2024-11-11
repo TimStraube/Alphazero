@@ -101,6 +101,9 @@ class Game {
             )
         )
         this.ships = [[], []]
+        this.state_ships[this.alphazero][0][0] = 255
+        this.state_ships[this.alphazero][0][1] = 255
+        this.state_ships[this.alphazero][0][2] = 255
         // this.placeShips()
         // this.player = this.player ^ 1
         // this.placeShips()
@@ -167,7 +170,14 @@ class Game {
             if (hit === 0 && ship === 0) {
                 // If water has been hit the player switches.
                 this.state_hits[this.player][east][north] = 255
-                this.togglePlayer()
+                if (this.player === this.user) {
+                    this.togglePlayer()
+                    setTimeout(() => {
+                        this.stepAlphazero()
+                    }, 1000)
+                } else {
+                    this.setUserPlayer()
+                }
             } else if (hit === 0 && ship === 255) {
                 // hit ship
                 this.state_hits[this.player][east][north] = 255
@@ -494,7 +504,7 @@ class Game {
         let color = "blue"
         for (let row = 0; row < this.size; row++) {
             for (let column = 0; column < this.size; column++) {
-                if (this.state_experiance[this.user][row][column] == 255) {
+                if (this.state_experiance[this.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 } else if (this.state_hits[this.user][row][column] == 255) {
