@@ -101,12 +101,7 @@ class Game {
             )
         )
         this.ships = [[], []]
-        this.state_ships[this.alphazero][0][0] = 255
-        this.state_ships[this.alphazero][0][1] = 255
-        this.state_ships[this.alphazero][0][2] = 255
-        // this.placeShips()
-        // this.player = this.player ^ 1
-        // this.placeShips()
+        this.placeShips()
     }
 
     togglePlayer() {
@@ -145,7 +140,22 @@ class Game {
                 for (let point of points) {
                     this.state_ships[this.player][point[0]][point[1]] = 255
                 }
+
                 this.shipsPossible[this.user] = this.shipsPossible[this.user].filter(ship => ship !== lengthShip);
+                
+                // Adjust string in frontend to inform user about the ship sizes which can still be placed
+                let shipsLeft = this.shipsPossible[this.user].join(", ")
+                if (this.shipsPossible[this.user].length > 1) {
+                    document.getElementById("shipInfo1").innerText = `Place your ships of size ${shipsLeft}`
+                    document.getElementById("shipInfo2").innerText = `Place your ships of size ${shipsLeft}`
+                } else if (this.shipsPossible[this.user].length === 1) {
+                    document.getElementById("shipInfo1").innerText = `Place your last ship of size ${shipsLeft}`
+                    document.getElementById("shipInfo2").innerText = `Place your last ship of size ${shipsLeft}`
+                } else {
+                    document.getElementById("shipInfo1").innerText = `The battle is on. Good luck.`
+                    document.getElementById("shipInfo2").innerText = `The battle is on. Good luck.`
+                }
+                
                 if (this.shipsPossible[this.user].length === 0) {
                     this.setAlphazeroPlayer()
                     this.placeShips()
@@ -312,48 +322,7 @@ class Game {
     }
     
     placeShips() {
-        console.log(this.player === this.alphazero)
-        for (let ship of this.shipsPossible[0]) {
-            let placed = false;
-            while (!placed) {
-                // true for horizontal, false for vertical
-                let direction = Math.random() < 0.5 
-                this.startX = Math.floor(
-                    Math.random() * (
-                        this.size - (direction ? ship : 1)
-                    )
-                )
-                this.startY = Math.floor(
-                    Math.random() * (
-                        this.size - (direction ? 1 : ship)
-                    )
-                )
-                // Check if the ship can be placed
-                let canPlace = true;
-                for (let i = 0; i < ship; i++) {
-                    let x = this.startX + (
-                        direction ? i : 0
-                    )
-                    let y = this.startY + (
-                        direction ? 0 : i
-                    )
-                    if (this.state_ships[this.user][x][y] !== 0) {
-                        canPlace = false;
-                        break;
-                    }
-                }
-    
-                // Place the ship if possible
-                if (canPlace) {
-                    for (let i = 0; i < ship; i++) {
-                        let x = startX + (direction ? i : 0)
-                        let y = startY + (direction ? 0 : i)
-                        this.state_ships[this.user][x][y] = 255
-                    }
-                    placed = true;
-                }
-            }
-        }
+        this.state_ships[this.alphazero][1][1] = 255     
     }
 
     // placeShips() {
@@ -913,6 +882,8 @@ class Game {
         } else {
             this.plotBoardsComputer();
         }
+        this.updateLeftBoard();
+        this.updateRightBoard();
     }
 
 }
