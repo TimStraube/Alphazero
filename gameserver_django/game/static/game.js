@@ -161,35 +161,54 @@ class Game {
             this.userPlacedBow = !this.userPlacedBow
         } else {
             let hit = this.state_hits[this.player][east][north]
-            let ship = this.state_ships[this.player][east][north]
+            let ship = this.state_ships[this.player ^ 1][east][north]
             console.log("Ship: " + ship)
             console.log("Hit: " + hit)
-            console.log(
-                this.player + " hit water at field " + String.fromCharCode(east + 65) + (north + 1)
-            )
+            if (this.player === this.user) {
+                console.log(
+                    "User hit water at field " + String.fromCharCode(east + 65) + (north + 1)
+                ) 
+            } else {
+                console.log(
+                    "Alphazero hit water at field " + String.fromCharCode(east + 65) + (north + 1)
+                )
+            }
             if (hit === 0 && ship === 0) {
                 // If water has been hit the player switches.
+                console.log("Hit water")
                 this.state_hits[this.player][east][north] = 255
                 if (this.player === this.user) {
                     this.togglePlayer()
-                    setTimeout(() => {
-                        this.stepAlphazero()
-                    }, 1000)
+                    this.stepAlphazero()
                 } else {
                     this.setUserPlayer()
                 }
             } else if (hit === 0 && ship === 255) {
                 // hit ship
+                console.log("Hit ship")
                 this.state_hits[this.player][east][north] = 255
                 this.state_experiance[this.player][east][north] = 255
-                if (this.player === this.alphazero) {
-                    this.stepAlphazero()
-                } else {
+                if (this.player === this.user) {
                     this.setUserPlayer()
+                } else {
+                    this.stepAlphazero()
                 }
             } else {
-                // If the field has already been hit the current player can make another move. 
+                // If the field has already been hit the current player can make another move.
+                console.log("Field has already been hit")
+                if (this.player === this.user) {
+                } else {
+                    this.stepAlphazero()
+                }
             }
+            if (this.terminated()) {
+                console.log("Game over")
+            }
+        }
+        if (this.player === this.user) {
+            console.log("User's turn")
+        } else {
+            console.log("Alphazero's turn")
         }
         this.updateLeftBoard()
         this.updateRightBoard()
@@ -227,23 +246,28 @@ class Game {
         return policy
     }
 
-    checkWin() {
-        let stateHit = this.state_hits[this.player]
-        let stateShip = this.state_ships[this.player ^ 1]
-        let hitSum = stateShip.flat().reduce(
-            (sum, val, idx) => sum + (val * stateHit.flat()[idx]), 0
-        )
-        return hitSum === this.num_shipparts
+    checkWin(player) {
+        let stateExperienceFlat = this.state_experiance[player].flat();
+        let shipsFlat = this.state_ships[player ^ 1].flat();
+        for (let i = 0; i < stateExperienceFlat.length; i++) {
+            console.log("State experience: " + stateExperienceFlat)
+            if (stateExperienceFlat[i] !== shipsFlat[i]) {
+                return false;
+            }
+        }
+        return true;
     }
 
     terminated() {
         if (this.checkWin(this.user)) {
-            return [1, true]
+            window.location.href = "../won/"
+            return true
         }
         if (this.checkWin(this.alphazero)) {
-            return [1, true]
+            window.location.href = "../loss/"
+            return true
         }
-        return [0, false]
+        return false
     }
 
     changePerspective() {
@@ -480,7 +504,7 @@ class Game {
                     dyn_fill_opacity = 0.7
                     color = "grey"
                 // water
-                } else if (this.state_hits[this.user][row][column] == 255) {
+                } else if (this.state_hits[this.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "blue"
                 } else {
@@ -504,7 +528,7 @@ class Game {
         let color = "blue"
         for (let row = 0; row < this.size; row++) {
             for (let column = 0; column < this.size; column++) {
-                if (this.state_experiance[this.alphazero][row][column] == 255) {
+                if (this.state_experiance[this.user][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
                 } else if (this.state_hits[this.user][row][column] == 255) {
@@ -527,7 +551,185 @@ class Game {
         }
     }
 
-    plotBoards() {
+    plotBoardsSmartphone() {
+
+        this.rectWidth = 10
+        this.rectHeight = 5
+        
+        this.startX = 10
+        this.startY = 5
+
+        let rectX = this.startX
+
+        for (let row = 0; row < this.size; row++) {
+            let rectY = this.startY
+            for (let column = 0; column < this.size; column++) {
+                
+                let rect = document.createElementNS(
+                    "http://www.w3.org/2000/svg", 
+                    "rect"
+                )
+                let text = document.createElementNS(
+                    "http://www.w3.org/2000/svg", 
+                    "text"
+                )
+
+                rect.setAttribute(
+                    'id', 
+                    new String(row) +
+                    new String(column)
+                )
+                rect.setAttribute(
+                    "class",
+                    "prevent-select"
+                )
+
+                rect.onclick = function ()
+                {
+                    this.step(
+                        row * this.size + column
+                    )
+                }.bind(this)
+                text.setAttribute(
+                    "x", 
+                    rectX + 40 / this.size + "%"
+                )
+                text.setAttribute(
+                    "y", 
+                    rectY + 20 / this.size + "%"
+                )
+                text.setAttribute("font-size", "20")
+                text.setAttribute("fill", "black")
+                text.setAttribute("text-anchor", "middle")
+                text.setAttribute(
+                    "dominant-baseline", 
+                    "middle"
+                )
+                text.textContent = (
+                    String.fromCharCode(row + 65) +
+                    (column + 1)
+                )
+                rect.setAttribute("x", rectX + "%")
+                rect.setAttribute("y", rectY + "%")
+                rect.setAttribute(
+                    "width", 80 / this.size + "%"
+                )
+                rect.setAttribute(
+                    "height", 40 / this.size + "%"
+                )
+                rect.setAttribute(
+                    "style", 
+                    "fill: grey; stroke: black; stroke-width: 2; fill-opacity: 0.0; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
+                )
+                // Rounded corners
+                rect.setAttribute("rx", "1%")
+                rect.setAttribute("ry", "1%")
+                this.grid.appendChild(text)
+                this.grid.appendChild(rect)
+                rectY += 40 / this.size
+            }
+            rectX += 80 / this.size
+        }
+        
+        this.rectWidth = 10
+        this.rectHeight = 5
+
+        this.startX = 10
+        this.startY = 55
+        
+        rectX = this.startX
+        
+        for (let row = 0; row < this.size; row++) {
+            let rectY = this.startY
+            for (let column = 0; column < this.size; column++) {
+                let rect = document.createElementNS(
+                    "http://www.w3.org/2000/svg", 
+                    "rect"
+                )
+                let text = document.createElementNS(
+                    "http://www.w3.org/2000/svg", 
+                    "text"
+                )
+                rect.setAttribute(
+                    'id', 
+                    new String(row) + 
+                    new String(column) + 
+                    new String(this.size * this.size)
+                )
+                rect.setAttribute(
+                    "class",
+                    "prevent-select"
+                )
+                rect.onclick = function () {
+                    this.step(
+                        row * this.size + column
+                    )
+                }.bind(this)
+                text.setAttribute(
+                    "x", 
+                    rectX + 40 / this.size + "%"
+                )
+                text.setAttribute(
+                    "y", 
+                    rectY + 20 / this.size + "%"
+                )
+                text.setAttribute("font-size", "20")
+                text.setAttribute("fill", "black")
+                text.setAttribute("text-anchor", "middle")
+                text.setAttribute(
+                    "dominant-baseline", 
+                    "middle"
+                )
+                text.textContent = (
+                    String.fromCharCode(row + 65) + 
+                    (column + 1)
+                )
+                rect.setAttribute("x", rectX + "%")
+                rect.setAttribute("y", rectY + "%")
+                rect.setAttribute(
+                    "width", 80 / this.size + "%"
+                )
+                rect.setAttribute(
+                    "height", 40 / this.size + "%"
+                )
+                rect.setAttribute(
+                    "style", 
+                    "fill: grey; stroke: black; stroke-width: 2; fill-opacity: 0.0; stroke-opacity: 1.0; font-family: 'EB Garamond'; font-size: 35px; "
+                )
+                // Rounded corners
+                rect.setAttribute("rx", "1%")
+                rect.setAttribute("ry", "1%")
+                this.grid.appendChild(text)
+                this.grid.appendChild(rect)
+                rectY += 40 / this.size
+            }
+            rectX += 80 / this.size
+        }
+
+        let gameFieldWidth = 0
+        let gameFieldHeight = 0
+
+        if (window.innerWidth > window.innerHeight) {
+            gameFieldWidth = this.startX + this.size * (
+                this.horizontalPadding + this.rectWidth + this.strokeWidth
+            )
+            gameFieldHeight = this.startY + this.size * (
+                this.verticalPadding + this.rectHeight + this.strokeWidth
+            )
+        } else {
+            gameFieldWidth = this.startX + this.size * (
+                this.horizontalPadding + this.rectWidth + this.strokeWidth
+            )
+            gameFieldHeight = this.startY + this.size * (
+                this.verticalPadding + this.rectHeight + this.strokeWidth
+            )
+        }
+
+        this.grid.setAttribute("width", gameFieldWidth)
+        this.grid.setAttribute("height", gameFieldHeight)
+    }
+
+    plotBoardsComputer() {
         this.rectWidth = 5
         this.rectHeight = 5
         
@@ -703,6 +905,16 @@ class Game {
         this.grid.setAttribute("width", gameFieldWidth)
         this.grid.setAttribute("height", gameFieldHeight)
     }
+
+    handleResize() {
+        this.grid.innerHTML = "";
+        if (window.innerWidth <= 768) {
+            this.plotBoardsSmartphone();
+        } else {
+            this.plotBoardsComputer();
+        }
+    }
+
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -710,5 +922,9 @@ document.addEventListener("DOMContentLoaded", function() {
     // Restart game to a state in which no ships are placed
     game.restart()
     // Draw the empty game boards
-    game.plotBoards()
+    game.handleResize()
+
+    window.addEventListener("resize", function() {
+        game.handleResize()
+    })
 })

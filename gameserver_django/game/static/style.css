@@ -37,6 +37,12 @@ button {
     user-select: none;
 }
 
+#t1 {
+    font-size: 5vh;
+    color: white; 
+    font-family: 'EB Garamond';
+}
+
 #output {
     background: transparent;
     text-align: center;
@@ -63,4 +69,22 @@ button {
     top: 0;
     left: 0;
     z-index: -1;
+}
+
+.desktop-content {
+    display: block;
+}
+
+.mobile-content {
+    display: none;
+}
+
+@media only screen and (max-width: 768px) {
+    .desktop-content {
+        display: none;
+    }
+
+    .mobile-content {
+        display: block;
+    }
 }
