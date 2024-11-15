@@ -303,16 +303,16 @@ class Game {
         // state_ships user, state_hits user, state_ships alphazero, state_hits alphazero, state_experiance user, state_experiance alphazero
         let encodedState = []
         encodedState = encodedState.concat(
-            ...this.state_ships[this.user].flat()
-        )
-        encodedState = encodedState.concat(
             ...this.state_hits[this.user].flat()
         )
         encodedState = encodedState.concat(
-            ...this.state_ships[this.alphazero].flat()
+            ...this.state_experiance[this.user].flat()
         )
         encodedState = encodedState.concat(
             ...this.state_hits[this.alphazero].flat()
+        )
+        encodedState = encodedState.concat(
+            ...this.state_experiance[this.alphazero].flat()
         )
         return new Float32Array(
             encodedState.map(
@@ -409,51 +409,51 @@ class Game {
     }
 
     stepAlphazero() {
-        const randomAction = Math.floor(
-            Math.random() * 81
-        )
-        this.step(randomAction)
+        // const randomAction = Math.floor(
+        //     Math.random() * 81
+        // )
+        // this.step(randomAction)
         // this.step(action)
 
-        // this.setAlphazeroPlayer()
-        // // generate model input
-        // const inputTensor = new onnx.Tensor(
-        //     getEncodedState(), 
-        //     'float32', 
-        //     [1, 4, 9, 9]
-        // )
-        // // execute the model
-        // this.onnxSession.run([inputTensor]).then(
-        //     (output) => {
-        //         // log the output object
-        //         // console.log("Model output:", output);
-        //         // consume the output
-        //         const outputTensor = output.values().next().value;
-        //         if (outputTensor) {
-        //             // console.log(`Model output tensor: ${outputTensor.data}.`);
-        //             const action = outputTensor.data.indexOf(
-        //                 Math.max(
-        //                     ...outputTensor.data
-        //                 )
-        //             )
-        //             // console.log(`Action: ${action}`);
-        //             const randomAction = Math.floor(
-        //                 Math.random() * 81
-        //             )
-        //             this.step(randomAction)
-        //             // this.step(action)
-        //             this.updateLeftBoard() 
-        //             this.updateRightBoard()
-        //         } else {
-        //             console.error("Model did not produce any output.");
-        //         }
-        //     }
-        // ).catch((error) => {
-        //     console.error(
-        //         "Error during model execution:", 
-        //         error
-        //     )
-        // })
+        this.setAlphazeroPlayer()
+        // generate model input
+        const inputTensor = new onnx.Tensor(
+            this.getEncodedState(), 
+            'float32', 
+            [1, 4, 9, 9]
+        )
+        // execute the model
+        this.onnxSession.run([inputTensor]).then(
+            (output) => {
+                // log the output object
+                // console.log("Model output:", output);
+                // consume the output
+                const outputTensor = output.values().next().value;
+                if (outputTensor) {
+                    // console.log(`Model output tensor: ${outputTensor.data}.`);
+                    const action = outputTensor.data.indexOf(
+                        Math.max(
+                            ...outputTensor.data
+                        )
+                    )
+                    // console.log(`Action: ${action}`);
+                    this.grid.style.pointerEvents = 'none';
+                    setTimeout(() => {
+                        this.grid.style.pointerEvents = 'auto';
+                        this.step(action);
+                    }, 500);
+                    this.updateLeftBoard() 
+                    this.updateRightBoard()
+                } else {
+                    console.error("Model did not produce any output.");
+                }
+            }
+        ).catch((error) => {
+            console.error(
+                "Error during model execution:", 
+                error
+            )
+        })
     }
 
     updateLeftBoard() {
