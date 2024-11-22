@@ -56,7 +56,6 @@ button {
 }
 
 #gameBackgroundImage {
-    background-image: url('static/img/game.webp');
     background-size: cover;
     background-repeat: no-repeat;
     background-attachment: fixed;

@@ -101,7 +101,6 @@ class Game {
             )
         )
         this.ships = [[], []]
-        this.placeShips()
     }
 
     togglePlayer() {
@@ -158,7 +157,7 @@ class Game {
                 
                 if (this.shipsPossible[this.user].length === 0) {
                     this.setAlphazeroPlayer()
-                    this.placeShips()
+                    this.placeShips(this.alphazero)
                     this.setUserPlayer()
                     this.phase = 1
                     console.log(
@@ -321,63 +320,59 @@ class Game {
         )
     }
     
-    placeShips() {
-        this.state_ships[this.alphazero][1][1] = 255     
+    placeShips(player) {
+        while (this.shipsPossible[player].length > 0) {
+            console.log(this.shipsPossible[player])
+            let direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
+            let x, y;
+            let validPlacement = false;
+
+            while (!validPlacement) {
+                if (direction === 'horizontal') {
+                    for (let ship of this.shipsPossible[player]) {
+                        x = Math.floor(Math.random() * (this.size - ship + 1));
+                        y = Math.floor(Math.random() * this.size);
+                        let points = this.pointsBetween([x, y], [x + ship - 1, y]);
+                        let validPoints = points.map(point => this.state_ships[player][point[0]][point[1]] === 0);
+                        if (validPoints.every(val => val)) {
+                            for (let point of points) {
+                                this.state_ships[player][point[0]][point[1]] = 255;
+                            }
+                            this.shipsPossible[player] = this.shipsPossible[player].filter(ship => ship !== points.length);
+                            validPlacement = true;
+                            break;
+                        }
+                    }
+                } else {
+                    for (let ship of this.shipsPossible[player]) {
+                        x = Math.floor(
+                            Math.random() * 
+                            this.size
+                        );
+                        y = Math.floor(
+                            Math.random() * 
+                            (this.size - ship + 1)
+                        );
+                        let points = this.pointsBetween(
+                            [x, y], 
+                            [x, y + ship - 1]
+                        );
+                        let validPoints = points.map(
+                            point => this.state_ships[player][point[0]][point[1]] === 0
+                        );
+                        if (validPoints.every(val => val)) {
+                            for (let point of points) {
+                                this.state_ships[player][point[0]][point[1]] = 255;
+                            }
+                            this.shipsPossible[player] = this.shipsPossible[player].filter(ship => ship !== points.length);
+                            validPlacement = true;
+                            break;
+                        }
+                    }  
+                }
+            }
+        }
     }
-
-    // placeShips() {
-    //     for (let ship of this.shipsPossible[this.player]) {
-    //         let randomDirection = Math.floor(Math.random() * 2)
-
-    //         let positions = []
-
-    //         for (let i = 0; i < this.size - ship + 1; i++) {
-    //             let prefix = new Array(i).fill(0)
-    //             let body = new Array(ship).fill(1)
-    //             let postfix = new Array(this.size - ship - i).fill(0)
-    //             let shipPossible = prefix.concat(body, postfix)
-
-    //             let shipPossibleSqueezed
-    //             if (randomDirection) {
-    //                 shipPossibleSqueezed = this.state_ships[this.player] * shipPossible
-
-    //                 let shipMap = this.state_ships[this.player]
-    //                 shipPossibleSqueezed = shipPossible.map((val, idx) => val && !shipMap[idx])
-    //             } else {
-    //                 let transposedShipMap = this.transpose(this.state_ships[this.player])
-    //                 shipPossibleSqueezed = shipPossible.map((val, idx) => val && !transposedShipMap[idx])
-    //             }
-    //             positions = positions.concat(shipPossibleSqueezed)
-    //         }
-
-    //         positions = this.reshape(positions, this.size - ship + 1, this.size)
-    //         let possiblePositions = this.where(positions, 1)
-
-    //         let lengthPossiblePositions = possiblePositions[0].length
-
-    //         let randomShipPosition = Math.floor(Math.random() * lengthPossiblePositions)
-
-    //         let x = possiblePositions[0][randomShipPosition]
-    //         let y = possiblePositions[1][randomShipPosition]
-
-    //         let p1, p2
-    //         if (randomDirection) {
-    //             p1 = [x, y]
-    //             p2 = [x + ship - 1, y]
-    //         } else {
-    //             p1 = [y, x]
-    //             p2 = [y, x + ship - 1]
-    //         }
-
-    //         let shipArray = this.pointsBetween(p1, p2)
-
-    //         this.ships[this.player].push(shipArray)
-
-    //         for (let point of shipArray) {
-    //             state_ships[player][point[0]][point[1]] = 255
-    //         }
-    //     }
-    // }
 
     transpose(matrix) {
         return matrix[0].map(
