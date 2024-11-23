@@ -2,7 +2,7 @@
 
 This program solved the game of battleship using alphazero and provides a web interface for playing.
 
-![screenshot](images/Scene game.png)
+![screenshot](images/Game.png)
 
 ## Battleship
 
