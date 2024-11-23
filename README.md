@@ -2,6 +2,8 @@
 
 This program solved the game of battleship using alphazero and provides a web interface for playing.
 
+![screenshot](images/Scene game.png)
+
 ## Battleship
 
 The game battleship is a board game with two players whereas each player has two maps. 
