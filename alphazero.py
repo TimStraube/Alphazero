@@ -20,14 +20,14 @@ class AlphaZero:
     def __init__(self):
         print("\nSetup of AlphaZero for training battleship\n")
         model_id = str(input("ID (string, for example AZ-{day}-{month}-{year}-{hardware}-{char}): "))
-        size = int(input("Battleship board width/height (int): "))
+        size = int(input("Battleship board whereas width equals height (int): "))
         self.game = Battleship(size)
         device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
         resblocks = int(input("Resblocks (int): "))
         hiddenlayers = int(input("Hidden layers (int): "))
-        inputarrays = int(input("Observed arrays (int): "))
+        inputarrays = 4 # int(input("Observed arrays (int): "))
         searches = int(input("Searches (int): "))
         selfplayiterations = int(
             input("Self play iterations (int): ")
