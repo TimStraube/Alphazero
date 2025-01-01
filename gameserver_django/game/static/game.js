@@ -45,6 +45,15 @@ class Game {
                 () => Array(this.size).fill(0)
             )
         )
+
+        this.handleResize = this.handleResize.bind(this);
+        this.openPopup = this.openPopup.bind(this);
+        this.closePopup = this.closePopup.bind(this);
+        this.handlePopupClick = this.handlePopupClick.bind(this);
+
+        document.getElementById("popup").addEventListener("click", this.handlePopupClick);
+        document.getElementById("close-btn").addEventListener("click", this.closePopup);
+
         this.onnxSession = new onnx.InferenceSession()
         this.loadModel()
     }
@@ -881,6 +890,19 @@ class Game {
         this.updateRightBoard();
     }
 
+    openPopup() {
+        document.getElementById("popup").style.display = "block";
+    }
+
+    closePopup() {
+        document.getElementById("popup").style.display = "none";
+    }
+
+    handlePopupClick(event) {
+        if (event.target.id === "popup") {
+            this.closePopup();
+        }
+    }
 }
 
 document.addEventListener("DOMContentLoaded", function() {
@@ -889,6 +911,10 @@ document.addEventListener("DOMContentLoaded", function() {
     game.restart()
     // Draw the empty game boards
     game.handleResize()
+
+    game.openPopup();
+
+    document.getElementById("popup").addEventListener("click", game.handlePopupClick);
 
     window.addEventListener("resize", function() {
         game.handleResize()
