@@ -919,10 +919,6 @@ document.addEventListener("DOMContentLoaded", function() {
     // Draw the empty game boards
     game.handleResize()
 
-    game.openPopup();
-
-    document.getElementById("popup").addEventListener("click", game.handlePopupClick);
-
     window.addEventListener("resize", function() {
         game.handleResize()
     })
