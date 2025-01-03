@@ -1,7 +1,7 @@
 h1 {
     margin: 0%;
     text-align: center; 
-    font-size: 50px; 
+    font-size: 5vh; 
     color: white; 
     font-family: 'EB Garamond';
 }
@@ -9,14 +9,14 @@ h1 {
 h2 {
     margin: 1%;
     text-align: center; 
-    font-size: 35px; 
+    font-size: 4vh; 
     color: white; 
     font-family: 'EB Garamond';
 }
 
 button {
     align-items: center;
-    font-size: 35px;
+    font-size: 5vh;
     border-radius: 5px;
     background-color: transparent;
     color: white; 
@@ -24,10 +24,9 @@ button {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    height: 200px;
-    width: 200px;
+    height: 20vh;
+    width: 20vh;
     font-family: 'EB Garamond';
-    font-size: 35px; 
     z-index: 1;
 }
 
@@ -111,6 +110,7 @@ button {
     padding: 20px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
     border-radius: 10px;
+    overflow-y: auto; 
 }
 
 /* Schließen Button */

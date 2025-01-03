@@ -54,6 +54,10 @@ class Game {
         document.getElementById("popup").addEventListener("click", this.handlePopupClick);
         document.getElementById("close-btn").addEventListener("click", this.closePopup);
 
+        if (!localStorage.getItem("dontShowAgain")) {
+            this.openPopup();
+        }
+
         this.onnxSession = new onnx.InferenceSession()
         this.loadModel()
     }
@@ -895,6 +899,9 @@ class Game {
     }
 
     closePopup() {
+        if (document.getElementById("dont-show-again").checked) {
+            localStorage.setItem("dontShowAgain", true);
+        }
         document.getElementById("popup").style.display = "none";
     }
 
