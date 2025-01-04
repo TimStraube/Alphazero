@@ -885,7 +885,7 @@ class Game {
 
     handleResize() {
         this.grid.innerHTML = "";
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= 2000) {
             this.plotBoardsSmartphone();
         } else {
             this.plotBoardsComputer();

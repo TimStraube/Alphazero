@@ -77,7 +77,7 @@ button {
     display: none;
 }
 
-@media only screen and (max-width: 768px) {
+@media only screen and (max-width: 2000px) {
     .desktop-content {
         display: none;
     }
