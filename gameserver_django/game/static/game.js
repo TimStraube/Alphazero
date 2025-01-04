@@ -65,7 +65,7 @@ class Game {
     loadModel() {
         // load the ONNX model file
         this.onnxSession.loadModel("/static/models/model.onnx").then(() => {
-            console.log("Model loaded successfully.")
+            // console.log("Model loaded successfully.")
         }).catch((error) => {
             console.error(
                 "Error during model loading:", 
@@ -173,9 +173,9 @@ class Game {
                     this.placeShips(this.alphazero)
                     this.setUserPlayer()
                     this.phase = 1
-                    console.log(
-                        "Phase changed to battle phase."
-                    )
+                    // console.log(
+                    //     "Phase changed to battle phase."
+                    // )
                 }
             }
             this.north_tminus1 = north 
@@ -184,20 +184,8 @@ class Game {
         } else {
             let hit = this.state_hits[this.player][east][north]
             let ship = this.state_ships[this.player ^ 1][east][north]
-            console.log("Ship: " + ship)
-            console.log("Hit: " + hit)
-            if (this.player === this.user) {
-                console.log(
-                    "User hit water at field " + String.fromCharCode(east + 65) + (north + 1)
-                ) 
-            } else {
-                console.log(
-                    "Alphazero hit water at field " + String.fromCharCode(east + 65) + (north + 1)
-                )
-            }
             if (hit === 0 && ship === 0) {
                 // If water has been hit the player switches.
-                console.log("Hit water")
                 this.state_hits[this.player][east][north] = 255
                 if (this.player === this.user) {
                     this.togglePlayer()
@@ -207,7 +195,6 @@ class Game {
                 }
             } else if (hit === 0 && ship === 255) {
                 // hit ship
-                console.log("Hit ship")
                 this.state_hits[this.player][east][north] = 255
                 this.state_experiance[this.player][east][north] = 255
                 if (this.player === this.user) {
@@ -217,20 +204,14 @@ class Game {
                 }
             } else {
                 // If the field has already been hit the current player can make another move.
-                console.log("Field has already been hit")
                 if (this.player === this.user) {
                 } else {
                     this.stepAlphazero()
                 }
             }
             if (this.terminated()) {
-                console.log("Game over")
+                // console.log("Game over")
             }
-        }
-        if (this.player === this.user) {
-            console.log("User's turn")
-        } else {
-            console.log("Alphazero's turn")
         }
         this.updateLeftBoard()
         this.updateRightBoard()
@@ -272,7 +253,6 @@ class Game {
         let stateExperienceFlat = this.state_experiance[player].flat();
         let shipsFlat = this.state_ships[player ^ 1].flat();
         for (let i = 0; i < stateExperienceFlat.length; i++) {
-            console.log("State experience: " + stateExperienceFlat)
             if (stateExperienceFlat[i] !== shipsFlat[i]) {
                 return false;
             }
@@ -335,7 +315,6 @@ class Game {
     
     placeShips(player) {
         while (this.shipsPossible[player].length > 0) {
-            console.log(this.shipsPossible[player])
             let direction = Math.random() < 0.5 ? 'horizontal' : 'vertical';
             let x, y;
             let validPlacement = false;
@@ -470,9 +449,6 @@ class Game {
         for (let row = 0; row < this.size; row++) {
             for (let column = 0; column < this.size; column++) {
                 // field has been hit
-                console.log(
-                    JSON.stringify(this.state_ships)
-                )
                 if (this.state_experiance[this.alphazero][row][column] == 255) {
                     dyn_fill_opacity = 0.7
                     color = "red"
@@ -885,7 +861,8 @@ class Game {
 
     handleResize() {
         this.grid.innerHTML = "";
-        if (window.innerWidth <= 2000) {
+        const boardOrientationToggleWidth = 2000
+        if (window.innerWidth <= boardOrientationToggleWidth) {
             this.plotBoardsSmartphone();
         } else {
             this.plotBoardsComputer();
