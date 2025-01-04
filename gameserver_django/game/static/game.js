@@ -861,7 +861,7 @@ class Game {
 
     handleResize() {
         this.grid.innerHTML = "";
-        const boardOrientationToggleWidth = 2000
+        const boardOrientationToggleWidth = 1200
         if (window.innerWidth <= boardOrientationToggleWidth) {
             this.plotBoardsSmartphone();
         } else {
