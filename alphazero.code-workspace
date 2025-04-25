@@ -1,0 +1,106 @@
+{
+    "folders": [
+        {
+            "path": "."
+        },
+        {
+            "name": "Django Server",
+            "path": "./gameserver_django"
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "${workspaceFolder}/.pyenv/versions/alphazero/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.provider": "autopep8",
+        "editor.formatOnSave": true,
+        "editor.rulers": [80, 100],
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true,
+            ".pytest_cache": true
+        },
+        "terminal.integrated.env.linux": {
+            "PYTHONPATH": "${workspaceFolder}"
+        },
+        "search.exclude": {
+            "**/speech/models": true,
+            "**/*.pt": true,
+            "**/*.onnx": true
+        },
+        "[python]": {
+            "editor.tabSize": 4,
+            "editor.insertSpaces": true,
+            "editor.detectIndentation": false
+        },
+        "[html]": {
+            "editor.tabSize": 2,
+            "editor.insertSpaces": true
+        },
+        "[javascript]": {
+            "editor.tabSize": 4,
+            "editor.insertSpaces": true
+        },
+        "files.associations": {
+            "*.pt": "plaintext",
+            "*.onnx": "plaintext"
+        },
+        "python.analysis.extraPaths": [
+            "${workspaceFolder}"
+        ],
+        "speech.recognition.isEnabled": false,
+        "speech.recognition.model": {
+            "path": "${workspaceFolder}/speech/models/vosk-model-small-en-us-0.15"
+        }
+    },
+    "extensions": {
+        "recommendations": [
+            "ms-python.python",
+            "ms-python.vscode-pylance",
+            "batisteo.vscode-django",
+            "VisualStudioExptTeam.vscodeintellicode",
+            "ritwickdey.liveserver"
+        ]
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Python: Current File",
+                "type": "python",
+                "request": "launch",
+                "program": "${file}",
+                "console": "integratedTerminal",
+                "justMyCode": true
+            },
+            {
+                "name": "Python: AlphaZero Training",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/alphazero.py",
+                "console": "integratedTerminal",
+                "justMyCode": true
+            },
+            {
+                "name": "Django Server",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/gameserver_django/manage.py",
+                "args": [
+                    "runserver",
+                    "0.0.0.0:8000"
+                ],
+                "django": true,
+                "justMyCode": true
+            },
+            {
+                "name": "Speech Recognition",
+                "type": "python",
+                "request": "launch",
+                "program": "${workspaceFolder}/speech.py",
+                "console": "integratedTerminal",
+                "justMyCode": true
+            }
+        ]
+    }
+}
