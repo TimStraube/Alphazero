@@ -20,18 +20,18 @@ from envs.battleship import Battleship
 class AlphaZero:
     def __init__(self):
         print("\nSetup of AlphaZero for training battleship\n")
-        model_id = input("ID (string, for example AZ-{day}-{month}-{year}-{hardware}-{char}) [AZ-default]: ") or "AZ-default"
-        size = int(input("Battleship board whereas width equals height min 3 (int) [5]: ") or 3)
+        model_id = input("ID (string) [alphazero]: ") or "alphazero"
+        size = int(input("Battleship board whereas width equals height min 3 (int) [5]: ") or 5)
         if size < 3:
             size = 3
         self.game = Battleship(size)
         device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        resblocks = int(input("Resblocks (int) [3]: ") or 3)
-        hiddenlayers = int(input("Hidden layers (int) [3]: ") or 3)
+        resblocks = int(input("Resblocks (int) [8]: ") or 8)
+        hiddenlayers = int(input("Hidden layers (int) [8]: ") or 8)
         inputarrays = 4 # int(input("Observed arrays (int): "))
-        searches = int(input("Searches (int) [2]: ") or 2)
+        searches = int(input("Searches (int) [3]: ") or 3)
         selfplayiterations = int(
             input("Self play iterations (int) [64]: ") or 64
         )
@@ -54,9 +54,9 @@ class AlphaZero:
         self.args = {
             'C': 2,
             'num_searches': searches,
-            'num_iterations': 5,
+            'num_iterations': 256,
             'num_selfPlay_iterations': selfplayiterations,
-            'num_epochs': 4,
+            'num_epochs': 128,
             'batch_size': 1024,
             'temperature': 1, # 1.25 (nicht verwendet, da die aufsummierten Wahrscheinlichkeiten 1 ergeben müssen)
             'dirichlet_epsilon': 0.25,
@@ -78,6 +78,7 @@ class AlphaZero:
         self.batch_step = 0
         self.current_iteration = 0
         self.play_step = 0
+        self.global_episode_lengths = []
 
         conn = None
         try:
@@ -169,38 +170,29 @@ class AlphaZero:
             )
             if is_terminal:
                 print(f"\nEpisodes: {episodes}")
+                # append to per-group and global lists
+                self.array_episodes.append(episodes)
+                self.global_episode_lengths.append(episodes)
                 # log per-episode length to TensorBoard
                 try:
                     if self.writer is not None:
                         self.writer.add_scalar('selfplay/episode_length', episodes, self.play_step)
-                        self.play_step += 1
                 except Exception:
                     pass
-                self.array_episodes.append(episodes)
+                # log running average up to this episode so avg_episodes becomes a time series
+                try:
+                    if self.writer is not None:
+                        avg_so_far = sum(self.global_episode_lengths) / len(self.global_episode_lengths)
+                        self.writer.add_scalar('selfplay/avg_episodes', float(avg_so_far), self.play_step)
+                except Exception:
+                    pass
+                # increment global episode counter
+                self.play_step += 1
+                # compute group average and reset group array if full
                 l = len(self.array_episodes)
-                if (l == 
-                    self.args['num_selfPlay_iterations']):
-                    self.average_episodes = sum(
-                        self.array_episodes
-                    ) / len(self.array_episodes)
-                    print(
-                        "\navg episodes " +
-                        str(self.average_episodes)
-                    )
-                    # log to TensorBoard
-                    try:
-                        if self.writer is not None:
-                            # Log average episodes at the current global episode step
-                            try:
-                                self.writer.add_scalar('selfplay/avg_episodes', self.average_episodes, self.play_step)
-                            except Exception:
-                                # fallback to iteration index if play_step is not available
-                                try:
-                                    self.writer.add_scalar('selfplay/avg_episodes', self.average_episodes, self.current_iteration)
-                                except Exception:
-                                    pass
-                    except Exception:
-                        pass
+                if l == self.args['num_selfPlay_iterations']:
+                    self.average_episodes = sum(self.array_episodes) / len(self.array_episodes)
+                    print("\navg episodes " + str(self.average_episodes))
                     self.array_episodes = []
                 returnMemory = []
                 for hist_neutral_state, hist_action_probs, hist_player in memory:

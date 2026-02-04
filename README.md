@@ -30,10 +30,16 @@ Install libs:
 poetry install
 ```
 
-Starting a training run:
+Starting a training run with Alphazero:
 
 ```bash
 poetry run python3 src/main.py
+```
+
+Starting a training run with the random Agent:
+
+```bash
+poetry run python3 src/main.py --agent random --episodes 1024 --size 5
 ```
 
 Tensorboard for live stats:
@@ -47,7 +53,7 @@ poetry run tensorboard --logdir logs --port 6006
 Comparing different agents performance:
 
 ```bash
-poetry run python3 eval/plot_avg_episodes.py --logdir logs --smooth 0.99
+poetry run python3 eval/plot_avg_episodes.py --logdir logs --smooth 0.5
 ```
 
 ## Battleship
