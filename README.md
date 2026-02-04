@@ -6,8 +6,6 @@ This program solved the game of battleship using alphazero and provides a web in
 
 ## Getting started
 
-### Pyenv and poetry
-
 To make sure pyenv is active in the shell:
 
 ```bash
