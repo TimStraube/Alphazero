@@ -38,6 +38,12 @@ Starting a training run:
 poetry run python3 src/main.py
 ```
 
+Tensorboard for live stats:
+
+```bash
+poetry run tensorboard --logdir logs --port 6006
+``
+
 ## Battleship
 
 The game battleship is a board game with two players whereas each player has two maps. 

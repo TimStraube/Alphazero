@@ -12,6 +12,7 @@ import torch
 import torch.nn.functional as functional
 import concurrent.futures
 from tqdm import trange
+from torch.utils.tensorboard import SummaryWriter
 from agents.alphazero.mcts import MCTS
 from agents.alphazero.residualnetwork import ResidualNetwork
 from envs.battleship import Battleship
@@ -68,6 +69,14 @@ class AlphaZero:
             ), exist_ok = True)
         except OSError as error:
             pass
+
+        # TensorBoard writer for training metrics
+        try:
+            self.writer = SummaryWriter(log_dir=f"./logs/{model_id}")
+        except Exception:
+            self.writer = None
+        self.batch_step = 0
+        self.current_iteration = 0
 
         conn = None
         try:
@@ -170,6 +179,12 @@ class AlphaZero:
                         "\navg episodes " +
                         str(self.average_episodes)
                     )
+                    # log to TensorBoard
+                    try:
+                        if self.writer is not None:
+                            self.writer.add_scalar('selfplay/avg_episodes', self.average_episodes, self.current_iteration)
+                    except Exception:
+                        pass
                     self.array_episodes = []
                 returnMemory = []
                 for hist_neutral_state, hist_action_probs, hist_player in memory:
@@ -234,9 +249,19 @@ class AlphaZero:
             self.optimizer.zero_grad()
             loss.backward()
             self.optimizer.step()
+            # Log losses to TensorBoard
+            try:
+                if self.writer is not None:
+                    self.writer.add_scalar('train/policy_loss', float(policy_loss.item()), self.batch_step)
+                    self.writer.add_scalar('train/value_loss', float(value_loss.item()), self.batch_step)
+                    self.writer.add_scalar('train/total_loss', float(loss.item()), self.batch_step)
+                    self.batch_step += 1
+            except Exception:
+                pass
 
     def learn(self, modellocation):
-        for _ in range(self.args['num_iterations']):
+        for iter_idx in range(self.args['num_iterations']):
+            self.current_iteration = iter_idx
             memory = []
             self.model.eval()
             for _ in trange(
@@ -249,6 +274,13 @@ class AlphaZero:
                 self.model.state_dict(), 
                 "./models/" + modellocation + f"/main.pt"
             )
+            # Flush TensorBoard events and log save event
+            try:
+                if self.writer is not None:
+                    self.writer.add_scalar('train/model_saves', 1, self.current_iteration)
+                    self.writer.flush()
+            except Exception:
+                pass
 
 if __name__ == "__main__":
     alphazero = AlphaZero()
