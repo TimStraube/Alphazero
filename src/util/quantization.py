@@ -14,9 +14,9 @@ import onnxruntime as ort
 import os
 from onnxruntime.quantization import quantize_dynamic
 from onnxruntime.quantization import QuantType
-from residualnetwork import ResidualNetwork
-from game import Battleship
-from mcts import MCTS
+from agents.alphazero.residualnetwork import ResidualNetwork
+from envs.battleship import Battleship
+from src.agents.alphazero.mcts import MCTS
         
 class ConvertModel():
     def __init__(self):

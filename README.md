@@ -4,6 +4,40 @@ This program solved the game of battleship using alphazero and provides a web in
 
 ![screenshot](images/Game.png)
 
+## Getting started
+
+### Pyenv and poetry
+
+To make sure pyenv is active in the shell:
+
+```bash
+export PYENV_ROOT="$HOME/.pyenv" && export PATH="$PYENV_ROOT/bin:$PATH" && eval "$(pyenv init -)"
+```
+
+Create a pyenv:
+
+```bash
+pyenv virtualenv 3.12.2 alphazero
+```
+
+Activate the pyenv:
+
+```bash
+pyenv activate alphazero
+```
+
+Install libs: 
+
+```bash
+poetry install
+```
+
+Starting a training run:
+
+```bash
+poetry run python3 src/main.py
+```
+
 ## Battleship
 
 The game battleship is a board game with two players whereas each player has two maps. 

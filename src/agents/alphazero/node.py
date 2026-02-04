@@ -1,6 +1,6 @@
 """
+description: Defines a Node class for Monte Carlo Tree Search.
 secondary author: Tim Straube
-contact: hi@optimalpi.com
 licence: MIT
 """
 

@@ -1,6 +1,6 @@
 """
+description: Defines a residual block for use in neural networks.
 secondary author: Tim Straube
-contact: hi@optimalpi.com
 licence: MIT
 """
 

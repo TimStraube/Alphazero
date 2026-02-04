@@ -1,6 +1,6 @@
 """
+description: Defines a Point class representing a point in 2D space.
 author: Tim Straube
-contact: hi@optimalpi.com
 licence: MIT
 """
 

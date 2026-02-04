@@ -1,12 +1,12 @@
 """
+description: Monte Carlo Tree Search implementation for AlphaZero
 secondary author: Tim Straube
-contact: hi@optimalpi.com
 licence: MIT
 """
 
 import torch
 import numpy
-from node import Node
+from agents.alphazero.node import Node
 
 class MCTS:
     def __init__(self, game, args, model):

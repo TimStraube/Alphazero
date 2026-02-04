@@ -11,26 +11,28 @@ import sqlite3
 import torch
 import torch.nn.functional as functional
 import concurrent.futures
-from mcts import MCTS
 from tqdm import trange
-from game import Battleship
-from residualnetwork import ResidualNetwork
+from agents.alphazero.mcts import MCTS
+from agents.alphazero.residualnetwork import ResidualNetwork
+from envs.battleship import Battleship
 
 class AlphaZero:
     def __init__(self):
         print("\nSetup of AlphaZero for training battleship\n")
-        model_id = str(input("ID (string, for example AZ-{day}-{month}-{year}-{hardware}-{char}): "))
-        size = int(input("Battleship board whereas width equals height (int): "))
+        model_id = input("ID (string, for example AZ-{day}-{month}-{year}-{hardware}-{char}) [AZ-default]: ") or "AZ-default"
+        size = int(input("Battleship board whereas width equals height min 3 (int) [5]: ") or 3)
+        if size < 3:
+            size = 3
         self.game = Battleship(size)
         device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         )
-        resblocks = int(input("Resblocks (int): "))
-        hiddenlayers = int(input("Hidden layers (int): "))
+        resblocks = int(input("Resblocks (int) [3]: ") or 3)
+        hiddenlayers = int(input("Hidden layers (int) [3]: ") or 3)
         inputarrays = 4 # int(input("Observed arrays (int): "))
-        searches = int(input("Searches (int): "))
+        searches = int(input("Searches (int) [2]: ") or 2)
         selfplayiterations = int(
-            input("Self play iterations (int): ")
+            input("Self play iterations (int) [2]: ") or 2
         )
         self.model = ResidualNetwork(
             self.game, 
@@ -149,7 +151,6 @@ class AlphaZero:
                 self.game.actions, 
                 p = action_probs
             )
-
             state = self.game.step(state, action, player)
             episodes += 1
             value, is_terminal = self.game.terminated(
@@ -157,6 +158,7 @@ class AlphaZero:
                 action
             )
             if is_terminal:
+                print(f"\nEpisodes: {episodes}")
                 self.array_episodes.append(episodes)
                 l = len(self.array_episodes)
                 if (l == 

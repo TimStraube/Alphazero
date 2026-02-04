@@ -7,9 +7,9 @@ licence: MIT
 import tensorflow as tf
 import random
 import numpy
-from residualnetwork import ResidualNetwork
-from game import Battleship
-from mcts import MCTS
+from agents.alphazero.residualnetwork import ResidualNetwork
+from envs.battleship import Battleship
+from src.agents.alphazero.mcts import MCTS
 
 def quantize_model(converter):
     board_size = 9

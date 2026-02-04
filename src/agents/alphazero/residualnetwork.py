@@ -1,11 +1,11 @@
 """
+description: Defines a residual network for use in neural networks.
 secondary author: Tim Straube
-contact: hi@optimalpi.com
 licence: MIT
 """
 
 import torch.nn as nn
-from residualblock import ResidualBlock
+from agents.alphazero.residualblock import ResidualBlock
 
 class ResidualNetwork(nn.Module):
     """Residual network
