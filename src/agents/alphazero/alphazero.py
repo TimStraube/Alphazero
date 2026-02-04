@@ -33,7 +33,7 @@ class AlphaZero:
         inputarrays = 4 # int(input("Observed arrays (int): "))
         searches = int(input("Searches (int) [2]: ") or 2)
         selfplayiterations = int(
-            input("Self play iterations (int) [2]: ") or 2
+            input("Self play iterations (int) [64]: ") or 64
         )
         self.model = ResidualNetwork(
             self.game, 
@@ -54,7 +54,7 @@ class AlphaZero:
         self.args = {
             'C': 2,
             'num_searches': searches,
-            'num_iterations': 256,
+            'num_iterations': 5,
             'num_selfPlay_iterations': selfplayiterations,
             'num_epochs': 4,
             'batch_size': 1024,
@@ -77,6 +77,7 @@ class AlphaZero:
             self.writer = None
         self.batch_step = 0
         self.current_iteration = 0
+        self.play_step = 0
 
         conn = None
         try:
@@ -168,6 +169,13 @@ class AlphaZero:
             )
             if is_terminal:
                 print(f"\nEpisodes: {episodes}")
+                # log per-episode length to TensorBoard
+                try:
+                    if self.writer is not None:
+                        self.writer.add_scalar('selfplay/episode_length', episodes, self.play_step)
+                        self.play_step += 1
+                except Exception:
+                    pass
                 self.array_episodes.append(episodes)
                 l = len(self.array_episodes)
                 if (l == 
@@ -182,7 +190,15 @@ class AlphaZero:
                     # log to TensorBoard
                     try:
                         if self.writer is not None:
-                            self.writer.add_scalar('selfplay/avg_episodes', self.average_episodes, self.current_iteration)
+                            # Log average episodes at the current global episode step
+                            try:
+                                self.writer.add_scalar('selfplay/avg_episodes', self.average_episodes, self.play_step)
+                            except Exception:
+                                # fallback to iteration index if play_step is not available
+                                try:
+                                    self.writer.add_scalar('selfplay/avg_episodes', self.average_episodes, self.current_iteration)
+                                except Exception:
+                                    pass
                     except Exception:
                         pass
                     self.array_episodes = []
