@@ -18,28 +18,10 @@ Create a pyenv:
 pyenv virtualenv 3.12.2 alphazero
 ```
 
-Activate the pyenv:
+Running a training run with the parameters in `hyperparameter.json`:
 
 ```bash
-pyenv activate alphazero
-```
-
-Install libs: 
-
-```bash
-poetry install
-```
-
-Starting a training run with Alphazero:
-
-```bash
-poetry run python3 src/main.py
-```
-
-Starting a training run with the random Agent:
-
-```bash
-poetry run python3 src/main.py --agent random --episodes 1024 --size 5
+bash train.sh
 ```
 
 Tensorboard for live stats:

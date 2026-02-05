@@ -9,9 +9,9 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.agent == "random":
-        from agents.random.random import RandomAgent
+        from agents.random.main import RandomAgent
         agent = RandomAgent(model_id=args.model_id, size=args.size, episodes=args.episodes)
         agent.run()
     else:
-        from agents.alphazero.alphazero import AlphaZero
+        from agents.alphazero.main import AlphaZero
         alphazero = AlphaZero()

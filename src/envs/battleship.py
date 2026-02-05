@@ -24,7 +24,7 @@ class Battleship:
 
     def restart(self, player):
         self.repeat = False
-        self.ships_possible = [[3, 2], [3, 2]]
+        self.ships_possible = [[4, 3, 2], [4, 3, 2]]
         self.num_shipparts = sum(self.ships_possible[0])
         # initalization of all submaps
         state = numpy.zeros(

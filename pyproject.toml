@@ -73,5 +73,9 @@ dependencies = [
 	"webencodings==0.5.1",
 	"wheel==0.44.0",
 	"yarg==0.1.9",
+	"gymnasium>=0.28.1",
+	"stable-baselines3>=2.2.0",
+	"sb3-contrib>=2.2.0",
+	"tensorboard>=2.15.0",
 ]
 
