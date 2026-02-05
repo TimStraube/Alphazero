@@ -16,25 +16,39 @@ from torch.utils.tensorboard import SummaryWriter
 from agents.alphazero.mcts import MCTS
 from agents.alphazero.residualnetwork import ResidualNetwork
 from envs.battleship import Battleship
+import argparse
 
 class AlphaZero:
-    def __init__(self):
+    def __init__(
+        self,
+        model_id: str = "alphazero",
+        size: int = 5,
+        resblocks: int = 6,
+        hiddenlayers: int = 6,
+        inputarrays: int = 4,
+        searches: int = 4,
+        selfplayiterations: int = 64,
+        num_iterations: int = 256,
+        num_epochs: int = 128,
+        batch_size: int = 1024,
+        temperature: float = 1.0,
+        dirichlet_epsilon: float = 0.25,
+        dirichlet_alpha: float = 0.3,
+        logdir: str | None = None,
+        save: str | None = None,
+    ):
         print("\nSetup of AlphaZero for training battleship\n")
-        model_id = input("ID (string) [alphazero]: ") or "alphazero"
-        size = int(input("Battleship board whereas width equals height min 3 (int) [5]: ") or 5)
+        model_id = model_id or "alphazero"
+        size = int(size or 5)
         if size < 3:
             size = 3
         self.game = Battleship(size)
-        device = torch.device(
-            "cuda" if torch.cuda.is_available() else "cpu"
-        )
-        resblocks = int(input("Resblocks (int) [6]: ") or 6)
-        hiddenlayers = int(input("Hidden layers (int) [6]: ") or 6)
-        inputarrays = 4 # int(input("Observed arrays (int): "))
-        searches = int(input("Searches (int) [4]: ") or 4)
-        selfplayiterations = int(
-            input("Self play iterations (int) [64]: ") or 64
-        )
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        resblocks = int(resblocks or 6)
+        hiddenlayers = int(hiddenlayers or 6)
+        inputarrays = int(inputarrays or 4)
+        searches = int(searches or 4)
+        selfplayiterations = int(selfplayiterations or 64)
         self.model = ResidualNetwork(
             self.game, 
             resblocks, 
@@ -54,13 +68,13 @@ class AlphaZero:
         self.args = {
             'C': 2,
             'num_searches': searches,
-            'num_iterations': 256,
-            'num_selfPlay_iterations': selfplayiterations,
-            'num_epochs': 128,
-            'batch_size': 1024,
-            'temperature': 1, # 1.25 (nicht verwendet, da die aufsummierten Wahrscheinlichkeiten 1 ergeben müssen)
-            'dirichlet_epsilon': 0.25,
-            'dirichlet_alpha': 0.3
+            'num_iterations': int(num_iterations),
+            'num_selfPlay_iterations': int(selfplayiterations),
+            'num_epochs': int(num_epochs),
+            'batch_size': int(batch_size),
+            'temperature': float(temperature),
+            'dirichlet_epsilon': float(dirichlet_epsilon),
+            'dirichlet_alpha': float(dirichlet_alpha),
         }
         try: 
             os.makedirs(os.path.join(
@@ -71,7 +85,7 @@ class AlphaZero:
             pass
 
         # TensorBoard writer for training metrics — create per-run subfolder with timestamp
-        base_log = os.path.join("logs", model_id)
+        base_log = logdir or os.path.join("logs", model_id)
         try:
             os.makedirs(base_log, exist_ok=True)
         except Exception:
@@ -91,7 +105,7 @@ class AlphaZero:
             self.writer = SummaryWriter(log_dir=run_dir)
         except Exception:
             self.writer = None
-        # create model directory matching the run timestamp
+        # create model directory matching the run timestamp (unless explicit save path provided)
         try:
             model_base = os.path.join("models", model_id)
             os.makedirs(model_base, exist_ok=True)
@@ -102,6 +116,20 @@ class AlphaZero:
             os.makedirs(self.model_dir, exist_ok=True)
         except Exception:
             pass
+        # if caller provided an explicit save path, honor it
+        if save:
+            # if save is an existing directory, place file inside it
+            if os.path.isdir(save):
+                self.save_path = os.path.join(save, "main.pt")
+            else:
+                root, ext = os.path.splitext(save)
+                if ext == "":
+                    # no extension provided — append .pt
+                    self.save_path = save + ".pt"
+                else:
+                    self.save_path = save
+        else:
+            self.save_path = os.path.join(self.model_dir, "main.pt")
         self.batch_step = 0
         self.current_iteration = 0
         self.play_step = 0
@@ -300,12 +328,54 @@ class AlphaZero:
                 self.train(memory)
             # save model into per-run model dir
             try:
-                torch.save(
-                    self.model.state_dict(),
-                    os.path.join(self.model_dir, "main.pt")
-                )
+                torch.save(self.model.state_dict(), self.save_path)
             except Exception:
-                torch.save(self.model.state_dict(), "./models/" + modellocation + f"/main.pt")
+                try:
+                    torch.save(self.model.state_dict(), "./models/" + modellocation + f"/main.pt")
+                except Exception:
+                    pass
+
+def _parse_args():
+    p = argparse.ArgumentParser(description="AlphaZero training for Battleship")
+    p.add_argument("--model-id", type=str, default="alphazero")
+    p.add_argument("--size", type=int, default=5)
+    p.add_argument("--resblocks", type=int, default=6)
+    p.add_argument("--hiddenlayers", type=int, default=6)
+    p.add_argument("--inputarrays", type=int, default=4)
+    p.add_argument("--searches", type=int, default=4)
+    p.add_argument("--selfplayiterations", type=int, default=64)
+    p.add_argument("--timesteps", type=int, default=0)
+    p.add_argument("--num-iterations", type=int, default=256)
+    p.add_argument("--num-epochs", type=int, default=128)
+    p.add_argument("--batch-size", type=int, default=1024)
+    p.add_argument("--temperature", type=float, default=1.0)
+    p.add_argument("--dirichlet-epsilon", type=float, default=0.25)
+    p.add_argument("--dirichlet-alpha", type=float, default=0.3)
+    p.add_argument("--logdir", type=str, default=None)
+    p.add_argument("--save", type=str, default=None)
+    return p.parse_args()
+
+
+def main():
+    args = _parse_args()
+    alphazero = AlphaZero(
+        model_id=args.model_id,
+        size=args.size,
+        resblocks=args.resblocks,
+        hiddenlayers=args.hiddenlayers,
+        inputarrays=args.inputarrays,
+        searches=args.searches,
+        selfplayiterations=args.selfplayiterations,
+        num_iterations=args.num_iterations,
+        num_epochs=args.num_epochs,
+        batch_size=args.batch_size,
+        temperature=args.temperature,
+        dirichlet_epsilon=args.dirichlet_epsilon,
+        dirichlet_alpha=args.dirichlet_alpha,
+        logdir=args.logdir,
+        save=args.save,
+    )
+
 
 if __name__ == "__main__":
-    alphazero = AlphaZero()
+    main()

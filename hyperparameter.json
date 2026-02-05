@@ -13,7 +13,7 @@
     "model_id": "random"
   },
   "pro": {
-    "timesteps": 1000,
+    "timesteps": 50000,
     "size": 5,
     "step_penalty": -0.05,
     "logdir": "logs/pro",
@@ -22,6 +22,18 @@
   "alphazero": {
     "timesteps": 50000,
     "size": 5,
+    "model_id": "alphazero",
+    "resblocks": 6,
+    "hiddenlayers": 6,
+    "inputarrays": 4,
+    "searches": 4,
+    "selfplayiterations": 64,
+    "num_iterations": 256,
+    "num_epochs": 128,
+    "batch_size": 1024,
+    "temperature": 1.0,
+    "dirichlet_epsilon": 0.25,
+    "dirichlet_alpha": 0.3,
     "logdir": "logs/alphazero",
     "save": "models/alphazero/main"
   }

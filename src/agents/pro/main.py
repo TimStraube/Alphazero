@@ -280,9 +280,7 @@ class PPOAgent:
 					recent = getattr(bs_env, '_ep_lengths', [])[-100:]
 					mean_len = float(sum(recent)) / len(recent) if recent else 0.0
 					try:
-						self.logger.record('rollout/ep_len_mean', mean_len / 2.0)
-						self.logger.record('train/ep_len_mean', mean_len / 2.0)
-						self.logger.record('ppo/episode_length', recent[-1] / 2.0 if recent else 0.0)
+						self.logger.record('ppo/episode_length', recent[-1] if recent else 0.0)
 						self.logger.dump(self.num_timesteps)
 					except Exception:
 						pass
