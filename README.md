@@ -35,7 +35,13 @@ poetry run tensorboard --logdir logs --port 6006
 Comparing different agents performance:
 
 ```bash
-poetry run python3 eval/plot_avg_episodes.py --logdir logs --smooth 0.5
+bash eval.sh
+```
+
+## User interface
+
+```bash
+bash interface.sh
 ```
 
 ## Battleship

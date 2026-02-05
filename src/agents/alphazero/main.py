@@ -70,11 +70,38 @@ class AlphaZero:
         except OSError as error:
             pass
 
-        # TensorBoard writer for training metrics
+        # TensorBoard writer for training metrics — create per-run subfolder with timestamp
+        base_log = os.path.join("logs", model_id)
         try:
-            self.writer = SummaryWriter(log_dir=f"./logs/{model_id}")
+            os.makedirs(base_log, exist_ok=True)
+        except Exception:
+            pass
+        try:
+            from datetime import datetime
+            ts = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+        except Exception:
+            ts = "run"
+        run_name = f"{model_id}_{ts}"
+        run_dir = os.path.join(base_log, run_name)
+        try:
+            os.makedirs(run_dir, exist_ok=True)
+        except Exception:
+            pass
+        try:
+            self.writer = SummaryWriter(log_dir=run_dir)
         except Exception:
             self.writer = None
+        # create model directory matching the run timestamp
+        try:
+            model_base = os.path.join("models", model_id)
+            os.makedirs(model_base, exist_ok=True)
+        except Exception:
+            model_base = os.path.join("models", model_id)
+        self.model_dir = os.path.join(model_base, run_name)
+        try:
+            os.makedirs(self.model_dir, exist_ok=True)
+        except Exception:
+            pass
         self.batch_step = 0
         self.current_iteration = 0
         self.play_step = 0
@@ -176,14 +203,7 @@ class AlphaZero:
                 # log per-episode length to TensorBoard
                 try:
                     if self.writer is not None:
-                        self.writer.add_scalar('selfplay/episode_length', episodes, self.play_step)
-                except Exception:
-                    pass
-                # log running average up to this episode so avg_episodes becomes a time series
-                try:
-                    if self.writer is not None:
-                        avg_so_far = sum(self.global_episode_lengths) / len(self.global_episode_lengths)
-                        self.writer.add_scalar('selfplay/avg_episodes', float(avg_so_far), self.play_step)
+                        self.writer.add_scalar('alphazero/episode_length', episodes / 2, self.play_step)
                 except Exception:
                     pass
                 # increment global episode counter
@@ -260,9 +280,9 @@ class AlphaZero:
             # Log losses to TensorBoard
             try:
                 if self.writer is not None:
-                    self.writer.add_scalar('train/policy_loss', float(policy_loss.item()), self.batch_step)
-                    self.writer.add_scalar('train/value_loss', float(value_loss.item()), self.batch_step)
-                    self.writer.add_scalar('train/total_loss', float(loss.item()), self.batch_step)
+                    self.writer.add_scalar('alphazero/policy_loss', float(policy_loss.item()), self.batch_step)
+                    self.writer.add_scalar('alphazero/value_loss', float(value_loss.item()), self.batch_step)
+                    self.writer.add_scalar('alphazero/total_loss', float(loss.item()), self.batch_step)
                     self.batch_step += 1
             except Exception:
                 pass
@@ -278,17 +298,14 @@ class AlphaZero:
             self.model.train()
             for epoch in trange(self.args['num_epochs']):
                 self.train(memory)
-            torch.save(
-                self.model.state_dict(), 
-                "./models/" + modellocation + f"/main.pt"
-            )
-            # Flush TensorBoard events and log save event
+            # save model into per-run model dir
             try:
-                if self.writer is not None:
-                    self.writer.add_scalar('train/model_saves', 1, self.current_iteration)
-                    self.writer.flush()
+                torch.save(
+                    self.model.state_dict(),
+                    os.path.join(self.model_dir, "main.pt")
+                )
             except Exception:
-                pass
+                torch.save(self.model.state_dict(), "./models/" + modellocation + f"/main.pt")
 
 if __name__ == "__main__":
     alphazero = AlphaZero()

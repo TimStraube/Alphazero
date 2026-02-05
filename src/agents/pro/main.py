@@ -31,10 +31,16 @@ except Exception:  # pragma: no cover
 try:
 	from stable_baselines3 import PPO
 	from stable_baselines3.common.vec_env import DummyVecEnv
-	from stable_baselines3.common.callbacks import BaseCallback
+	from stable_baselines3.common.callbacks import BaseCallback, CallbackList
 	from stable_baselines3.common.monitor import Monitor
+	from stable_baselines3.common.logger import configure
 except Exception:  # pragma: no cover
 	raise ImportError("Please install 'stable-baselines3' to use the PPO agent")
+
+try:
+	from torch.utils.tensorboard import SummaryWriter
+except Exception:
+	SummaryWriter = None
 
 
 def _load_battleship_class():
@@ -47,7 +53,6 @@ def _load_battleship_class():
 	try:
 		# common case when running from project root where src is on sys.path
 		from envs.battleship import Battleship  # type: ignore
-
 		return Battleship
 	except Exception:
 		# try loading from relative path: ../../envs/battleship.py
@@ -61,7 +66,7 @@ def _load_battleship_class():
 			return getattr(module, "Battleship")
 		raise
 
-
+# Load Battleship class and provide a Gym wrapper
 Battleship = _load_battleship_class()
 
 
@@ -69,13 +74,13 @@ class BattleshipGym(gym.Env):
 	"""Gymnasium wrapper around the project's `Battleship` game.
 
 	Single-agent environment where the learning agent plays as player 1
-	and the opponent plays random valid moves.
-	Observations are flattened vectors with values in {0., 1.}.
+	and the opponent plays random valid moves. Observations are flattened
+	vectors so SB3's `MlpPolicy` can be used.
 	"""
 
 	metadata = {"render.modes": ["human"]}
 
-	def __init__(self, size: int = 6, seed: Optional[int] = None, step_penalty: float = 0.0):
+	def __init__(self, size: int = 6, seed: Optional[int] = None, step_penalty: float = 0.0, writer=None, agent_prefix: str = "pro"):
 		super().__init__()
 		self.size = size
 		self.bs = Battleship(size)
@@ -84,11 +89,15 @@ class BattleshipGym(gym.Env):
 			random.seed(seed)
 			np.random.seed(seed)
 
-		obs_shape = (4 * size * size,)
-		self.observation_space = gym.spaces.Box(
-			low=0.0, high=1.0, shape=obs_shape, dtype=np.float32
-		)
+		# bookkeeping for external callbacks
+		self.writer = writer
+		self.agent_prefix = agent_prefix or "pro"
+		self._ep_steps = 0
+		self._episodes = 0
+		self._ep_lengths = []
 
+		obs_shape = (4 * size * size,)
+		self.observation_space = gym.spaces.Box(low=0.0, high=1.0, shape=obs_shape, dtype=np.float32)
 		self.action_space = gym.spaces.Discrete(size * size)
 		self.state = None
 		self.current_player = 1
@@ -97,70 +106,64 @@ class BattleshipGym(gym.Env):
 		if seed is not None:
 			random.seed(seed)
 			np.random.seed(seed)
-
 		self.state = self.bs.restart(1)
 		self.current_player = 1
+		self._ep_steps = 0
 		obs = self.bs.get_encoded_state(self.state).astype(np.float32).flatten()
 		return obs, {}
 
 	def step(self, action: int):
 		assert self.state is not None, "Call reset() before step()"
-
-		# Agent (player 1) takes the action
+		# agent move
 		self.state = self.bs.step(self.state, int(action), 1)
+		self._ep_steps += 1
 		done = False
 		reward = 0.0
-		# per-step penalty (negative to encourage shorter episodes)
 		reward += float(getattr(self, "step_penalty", 0.0))
-
-		# reward: +1 for hit (bs.repeat True), small negative for miss
 		if getattr(self.bs, "repeat", False):
 			reward += 1.0
 		else:
 			reward -= 0.1
 
-		# check terminal after agent move
 		winner, terminal = self.bs.terminated(self.state, action)
 		if terminal:
 			done = True
-			# if agent won
 			if self.bs.check_win(self.state, action, 1):
 				reward += 10.0
 			else:
 				reward -= 10.0
+			# bookkeeping for external logger callbacks
+			self._ep_lengths.append(self._ep_steps)
+			self._episodes += 1
 			obs = self.bs.get_encoded_state(self.state).astype(np.float32).flatten()
 			return obs, reward, done, False, {}
 
-		# if agent didn't get a repeat (i.e., no extra turn), opponent moves
+		# opponent moves if no repeat
 		if not getattr(self.bs, "repeat", False):
-			# opponent plays until it either misses or wins
 			opp_turn = True
 			while opp_turn:
 				valid = self.bs.get_valid_moves(self.state, -1)
 				valid_idx = np.where(np.asarray(valid).flatten() == 1)[0]
 				if len(valid_idx) == 0:
-					# no valid moves left
 					break
 				a = int(np.random.choice(valid_idx))
 				self.state = self.bs.step(self.state, a, -1)
-
-				# if opponent hit, they might get repeat -> keep playing
 				if getattr(self.bs, "repeat", False):
-					# penalize agent for opponent hits
 					reward -= 0.5
-					# check for terminal after opponent hit
 					if self.bs.check_win(self.state, a, -1):
 						done = True
 						reward -= 10.0
 						opp_turn = False
 						break
-					# opponent continues
 					opp_turn = True
 				else:
 					opp_turn = False
 
 		obs = self.bs.get_encoded_state(self.state).astype(np.float32).flatten()
 		return obs, reward, done, False, {}
+
+	def render(self, mode: str = "human"):
+		print("Render not implemented in detail. Use Battleship debug methods.")
 
 	def render(self, mode: str = "human"):
 		# Minimal textual render: show hit and ship layers sizes
@@ -175,17 +178,52 @@ class PPOAgent:
 		self.log_dir = log_dir
 		self.step_penalty = float(step_penalty)
 		self.model: Optional[PPO] = None
+		# create per-run timestamped directory under provided log_dir (e.g. logs/pro/pro_YYYY_MM_DD...)
+		base_log = self.log_dir or os.path.join("logs", "pro")
+		try:
+			os.makedirs(base_log, exist_ok=True)
+		except Exception:
+			pass
+		try:
+			from datetime import datetime
+			ts = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
+		except Exception:
+			ts = "run"
+		run_name = f"pro_{ts}"
+		self.run_dir = os.path.join(base_log, run_name)
+		try:
+			os.makedirs(self.run_dir, exist_ok=True)
+		except Exception:
+			pass
+		# Do not create a separate SummaryWriter here to avoid duplicate TB writers.
+		# Logging of episode statistics is performed via SB3 logger in a callback.
+		self.writer = None
+		# create matching model directory for this run
+		self.model_dir = os.path.join("models", "pro", run_name)
+		try:
+			os.makedirs(self.model_dir, exist_ok=True)
+		except Exception:
+			pass
 
 	def _make_vec_env(self):
-		# inject step_penalty into the env constructor
-		return DummyVecEnv([lambda: Monitor(BattleshipGym(self.size, step_penalty=self.step_penalty))])
+		# inject step_penalty into the env constructor and pass the writer
+		# capture the Env class in a local variable so the lambda resolves it reliably
+		env_cls = BattleshipGym
+		return DummyVecEnv([
+			lambda: Monitor(env_cls(self.size, step_penalty=self.step_penalty, writer=self.writer, agent_prefix="pro"))
+		])
 
 	def train(self, total_timesteps: int = 10000, show_progress: bool = True, **ppo_kwargs):
 		env = self._make_vec_env()
-		# ensure log dir exists for tensorboard
-		if self.log_dir:
-			os.makedirs(self.log_dir, exist_ok=True)
-		self.model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=self.log_dir, **ppo_kwargs)
+		# SB3 tensorboard logging: write into the per-run directory created at init
+		# configure SB3 logger to write TensorBoard events directly into the run directory
+		self.model = PPO("MlpPolicy", env, verbose=1, tensorboard_log=None, **ppo_kwargs)
+		try:
+			logger = configure(self.run_dir, ["tensorboard"])  # write TB events into run_dir
+			self.model.set_logger(logger)
+		except Exception:
+			# fallback: let SB3 handle tensorboard logging under the provided target
+			pass
 		callbacks = None
 		if show_progress:
 			class TqdmCallback(BaseCallback):
@@ -205,22 +243,73 @@ class PPOAgent:
 					if delta > 0 and self.pbar is not None:
 						self.pbar.update(delta)
 						self._last_num_timesteps = int(self.num_timesteps)
-					return True
+						return True
 
 				def _on_training_end(self) -> None:
 					if self.pbar is not None:
 						self.pbar.close()
 
-			callbacks = TqdmCallback(total_timesteps)
+		callbacks = [TqdmCallback(total_timesteps)]
+
+		# Callback to read env episode bookkeeping and write into SB3 logger
+		class SB3EpisodeCallback(BaseCallback):
+			def __init__(self):
+				super().__init__()
+				self._last_eps = 0
+
+			def _find_battleship_env(self):
+				for e in getattr(self.training_env, 'envs', []):
+					cand = e
+					for _ in range(4):
+						if hasattr(cand, 'env'):
+							cand = getattr(cand, 'env')
+						elif hasattr(cand, 'unwrapped'):
+							cand = getattr(cand, 'unwrapped')
+						else:
+							break
+					if hasattr(cand, '_ep_lengths'):
+						return cand
+				return None
+
+			def _on_step(self) -> bool:
+				bs_env = self._find_battleship_env()
+				if bs_env is None:
+					return True
+				total_eps = getattr(bs_env, '_episodes', 0)
+				if total_eps > self._last_eps:
+					recent = getattr(bs_env, '_ep_lengths', [])[-100:]
+					mean_len = float(sum(recent)) / len(recent) if recent else 0.0
+					try:
+						self.logger.record('rollout/ep_len_mean', mean_len / 2.0)
+						self.logger.record('train/ep_len_mean', mean_len / 2.0)
+						self.logger.record('ppo/episode_length', recent[-1] / 2.0 if recent else 0.0)
+						self.logger.dump(self.num_timesteps)
+					except Exception:
+						pass
+					self._last_eps = total_eps
+				return True
+
+		callbacks = CallbackList(callbacks + [SB3EpisodeCallback()])
 
 		self.model.learn(total_timesteps=total_timesteps, callback=callbacks)
+		# ensure writer flush so TensorBoard sees latest scalars
+		try:
+			if getattr(self, "writer", None) is not None:
+				self.writer.flush()
+		except Exception:
+			pass
 		return self.model
 
 	def save(self, path: str):
 		if self.model is None:
 			raise RuntimeError("No model to save. Train or load a model first.")
-		os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-		self.model.save(path)
+		# save into model_dir created for this run
+		try:
+			os.makedirs(self.model_dir, exist_ok=True)
+		except Exception:
+			pass
+		save_path = os.path.join(self.model_dir, "main")
+		self.model.save(save_path)
 
 	def load(self, path: str):
 		env = self._make_vec_env()
@@ -256,7 +345,7 @@ def main():
 	parser = argparse.ArgumentParser()
 	parser.add_argument("--size", type=int, default=5)
 	parser.add_argument("--timesteps", type=int, default=20000)
-	parser.add_argument("--save", type=str, default="models/pro/pro_battleship")
+	parser.add_argument("--save", type=str, default=None)
 	parser.add_argument("--logdir", type=str, default="logs/pro")
 	parser.add_argument("--step-penalty", type=float, default=0.0, help="per-step reward penalty (negative encourages shorter episodes)")
 	parser.add_argument("--eval_episodes", type=int, default=50)
@@ -265,8 +354,8 @@ def main():
 	agent = PPOAgent(size=args.size, log_dir=args.logdir, step_penalty=args.step_penalty)
 	print("Training PPO on Battleship...")
 	agent.train(total_timesteps=args.timesteps)
-	print(f"Saving model to {args.save}")
-	agent.save(args.save)
+	agent.save(None)
+	print(f"Saved model to {agent.model_dir}")
 	print("Evaluating model...")
 	stats = agent.evaluate(episodes=args.eval_episodes)
 	print(stats)

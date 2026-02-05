@@ -1,4 +1,12 @@
 {
+  "envs": {
+    "battleship": {
+      "size": 5,
+      "seed": 42,
+      "ship_sizes": [3, 2],
+      "step_penalty": -0.05
+    }
+  },
   "random": {
     "episodes": 1024,
     "size": 5,
